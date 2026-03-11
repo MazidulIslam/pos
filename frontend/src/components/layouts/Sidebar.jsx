@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   Typography,
   Tooltip,
   Divider,
+  Collapse,
 } from "@mui/material";
 import {
   LayoutDashboard,
@@ -24,6 +25,14 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronDown,
+  FolderTree,
+  UserRound,
+  ReceiptText,
+  PackagePlus,
+  Tags,
+  SlidersHorizontal,
+  FileBarChart,
 } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 
@@ -32,16 +41,95 @@ const EXPANDED_WIDTH = 260;
 
 const menuItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  { label: "Products", icon: Package, href: "/products" },
-  { label: "Customers", icon: Users, href: "/customers" },
-  { label: "Sales", icon: ShoppingCart, href: "/sales" },
-  { label: "Reports", icon: BarChart3, href: "/reports" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  {
+    label: "Products",
+    icon: Package,
+    href: "/products",
+    children: [
+      { label: "All Products", href: "/products", icon: FolderTree },
+      { label: "Categories", href: "/products/categories", icon: Tags },
+      { label: "Add Product", href: "/products/create", icon: PackagePlus },
+    ],
+  },
+  {
+    label: "Customers",
+    icon: Users,
+    href: "/customers",
+    children: [
+      { label: "Customer List", href: "/customers", icon: UserRound },
+      { label: "Groups", href: "/customers/groups", icon: FolderTree },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: ShoppingCart,
+    href: "/sales",
+    children: [
+      { label: "Orders", href: "/sales", icon: ReceiptText },
+      { label: "Invoices", href: "/sales/invoices", icon: FileBarChart },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: BarChart3,
+    href: "/reports",
+    children: [
+      { label: "Sales Report", href: "/reports/sales", icon: FileBarChart },
+      { label: "Inventory", href: "/reports/inventory", icon: FileBarChart },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    href: "/settings",
+    children: [
+      { label: "General", href: "/settings", icon: SlidersHorizontal },
+      { label: "Users & Roles", href: "/settings/users", icon: Users },
+    ],
+  },
 ];
+
+const isPathActive = (pathname, href) => {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+};
 
 export const Sidebar = () => {
   const pathname = usePathname();
   const { isExpanded, setIsExpanded } = useSidebar();
+
+  const initialOpenMenus = useMemo(() => {
+    return menuItems.reduce((acc, item) => {
+      if (item.children?.some((child) => isPathActive(pathname, child.href))) {
+        acc[item.label] = true;
+      }
+      return acc;
+    }, {});
+  }, [pathname]);
+
+  const [openMenus, setOpenMenus] = useState(initialOpenMenus);
+
+  useEffect(() => {
+    setOpenMenus((prev) => {
+      const next = { ...prev };
+      menuItems.forEach((item) => {
+        if (
+          item.children?.some((child) => isPathActive(pathname, child.href))
+        ) {
+          next[item.label] = true;
+        }
+      });
+      return next;
+    });
+  }, [pathname]);
+
+  const toggleMenu = (label) => {
+    if (!isExpanded) return;
+    setOpenMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
 
   return (
     <Drawer
@@ -66,7 +154,6 @@ export const Sidebar = () => {
         },
       }}
     >
-      {/* ── Logo ── */}
       <Box
         sx={{
           height: "var(--header-height)",
@@ -80,7 +167,6 @@ export const Sidebar = () => {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          {/* Logo icon — always visible */}
           <Box
             sx={{
               height: 32,
@@ -108,7 +194,6 @@ export const Sidebar = () => {
             </Typography>
           </Box>
 
-          {/* Brand name — fades in when expanded */}
           <Typography
             variant="h6"
             sx={{
@@ -130,7 +215,6 @@ export const Sidebar = () => {
         </Box>
       </Box>
 
-      {/* ── Nav Items ── */}
       <Box
         sx={{
           flex: 1,
@@ -143,86 +227,191 @@ export const Sidebar = () => {
       >
         <List sx={{ p: 0 }}>
           {menuItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isParentActive =
+              isPathActive(pathname, item.href) ||
+              item.children?.some((child) =>
+                isPathActive(pathname, child.href),
+              );
+
+            const hasChildren = Boolean(item.children?.length);
+            const isOpen = Boolean(openMenus[item.label]);
+
+            const buttonContent = (
+              <ListItemButton
+                component={hasChildren ? "button" : Link}
+                href={hasChildren ? undefined : item.href}
+                onClick={hasChildren ? () => toggleMenu(item.label) : undefined}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.25,
+                  px: isExpanded ? 1.5 : 0,
+                  minHeight: 48,
+                  width: "100%",
+                  justifyContent: isExpanded ? "flex-start" : "center",
+                  bgcolor: isParentActive ? "primary.light" : "transparent",
+                  color: isParentActive ? "primary.dark" : "text.secondary",
+                  "& .MuiListItemText-primary": {
+                    color: isParentActive ? "primary.dark" : "inherit",
+                  },
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    bgcolor: isParentActive
+                      ? "primary.light"
+                      : "secondary.main",
+                    color: isParentActive ? "primary.dark" : "text.primary",
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isExpanded ? 1.5 : 0,
+                    color: isParentActive ? "primary.main" : "inherit",
+                    justifyContent: "center",
+                    transition: "margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
+                  <item.icon size={20} />
+                </ListItemIcon>
+
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontSize: 14,
+                    fontWeight: isParentActive ? 700 : 500,
+                    noWrap: true,
+                  }}
+                  sx={{
+                    opacity: isExpanded ? 1 : 0,
+                    maxWidth: isExpanded ? 160 : 0,
+                    overflow: "hidden",
+                    m: 0,
+                    transition:
+                      "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                />
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    opacity: isExpanded ? 1 : 0,
+                    maxWidth: isExpanded ? 24 : 0,
+                    overflow: "hidden",
+                    color: isParentActive ? "primary.main" : "text.secondary",
+                    transition:
+                      "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
+                  {hasChildren ? (
+                    isOpen ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )
+                  ) : isParentActive ? (
+                    <ChevronRight size={16} />
+                  ) : null}
+                </Box>
+              </ListItemButton>
+            );
 
             return (
-              <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
-                <Tooltip
-                  title={!isExpanded ? item.label : ""}
-                  placement="right"
-                  arrow
-                  disableInteractive
-                >
-                  <ListItemButton
-                    component={Link}
-                    href={item.href}
-                    sx={{
-                      borderRadius: 2,
-                      py: 1.25,
-                      px: isExpanded ? 1.5 : 0,
-                      minHeight: 48,
-                      justifyContent: isExpanded ? "flex-start" : "center",
-                      bgcolor: isActive ? "primary.light" : "transparent",
-                      color: isActive ? "primary.main" : "text.secondary",
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        bgcolor: isActive ? "primary.light" : "secondary.main",
-                        color: isActive ? "primary.main" : "text.primary",
-                      },
-                    }}
+              <Box key={item.label} sx={{ mb: 0.5 }}>
+                <ListItem disablePadding>
+                  <Tooltip
+                    title={!isExpanded ? item.label : ""}
+                    placement="right"
+                    arrow
+                    disableInteractive
                   >
-                    <ListItemIcon
-                      sx={{
-                        minWidth: 0,
-                        mr: isExpanded ? 1.5 : 0,
-                        color: "inherit",
-                        justifyContent: "center",
-                        transition: "margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    >
-                      <item.icon size={20} />
-                    </ListItemIcon>
+                    {buttonContent}
+                  </Tooltip>
+                </ListItem>
 
-                    <ListItemText
-                      primary={item.label}
-                      primaryTypographyProps={{
-                        fontSize: 14,
-                        fontWeight: isActive ? 600 : 500,
-                        noWrap: true,
-                      }}
-                      sx={{
-                        opacity: isExpanded ? 1 : 0,
-                        maxWidth: isExpanded ? 160 : 0,
-                        overflow: "hidden",
-                        m: 0,
-                        transition:
-                          "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    />
+                {hasChildren && (
+                  <Collapse
+                    in={isExpanded && isOpen}
+                    timeout="auto"
+                    unmountOnExit
+                  >
+                    <List disablePadding sx={{ mt: 0.5 }}>
+                      {item.children.map((child) => {
+                        const isChildActive = isPathActive(
+                          pathname,
+                          child.href,
+                        );
 
-                    {/* Active chevron */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        opacity: isActive && isExpanded ? 1 : 0,
-                        maxWidth: isActive && isExpanded ? 20 : 0,
-                        overflow: "hidden",
-                        transition:
-                          "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      }}
-                    >
-                      <ChevronRight size={16} />
-                    </Box>
-                  </ListItemButton>
-                </Tooltip>
-              </ListItem>
+                        return (
+                          <ListItem
+                            key={child.href}
+                            disablePadding
+                            sx={{ mb: 0.25 }}
+                          >
+                            <ListItemButton
+                              component={Link}
+                              href={child.href}
+                              sx={{
+                                ml: 1,
+                                pl: 2,
+                                pr: 1.25,
+                                py: 1,
+                                minHeight: 40,
+                                borderRadius: 2,
+                                bgcolor: isChildActive
+                                  ? "rgba(79, 70, 229, 0.12)"
+                                  : "transparent",
+                                color: isChildActive
+                                  ? "primary.dark"
+                                  : "text.secondary",
+                                "& .MuiListItemText-primary": {
+                                  color: isChildActive
+                                    ? "primary.dark"
+                                    : "inherit",
+                                },
+                                "&:hover": {
+                                  bgcolor: isChildActive
+                                    ? "rgba(79, 70, 229, 0.16)"
+                                    : "secondary.main",
+                                  color: isChildActive
+                                    ? "primary.dark"
+                                    : "text.primary",
+                                },
+                                transition: "all 0.2s ease",
+                              }}
+                            >
+                              <ListItemIcon
+                                sx={{
+                                  minWidth: 28,
+                                  color: isChildActive
+                                    ? "primary.main"
+                                    : "text.disabled",
+                                }}
+                              >
+                                <child.icon size={16} />
+                              </ListItemIcon>
+
+                              <ListItemText
+                                primary={child.label}
+                                primaryTypographyProps={{
+                                  fontSize: 13,
+                                  fontWeight: isChildActive ? 700 : 500,
+                                  noWrap: true,
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Collapse>
+                )}
+              </Box>
             );
           })}
         </List>
       </Box>
 
-      {/* ── Sign Out ── */}
       <Box
         sx={{
           px: isExpanded ? 2 : 1,
