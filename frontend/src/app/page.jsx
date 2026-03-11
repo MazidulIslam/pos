@@ -1,5 +1,18 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+"use client";
+
+import React from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  Avatar,
+  Divider,
+  Chip,
+  Paper
+} from '@mui/material';
 import {
   Package,
   Users,
@@ -10,105 +23,165 @@ import {
 
 export default function Home() {
   const stats = [
-    { label: 'Total Sales', value: '$24,560', icon: DollarSign, trend: '+12.5%', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Active Orders', value: '142', icon: ArrowUpRight, trend: '+5.2%', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Total Products', value: '1,205', icon: Package, trend: '0%', color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'New Customers', value: '12', icon: Users, trend: '+2', color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Total Sales', value: '$24,560', icon: DollarSign, trend: '+12.5%', color: 'success.main', bg: '#ecfdf5' },
+    { label: 'Active Orders', value: '142', icon: ArrowUpRight, trend: '+5.2%', color: 'primary.main', bg: '#eff6ff' },
+    { label: 'Total Products', value: '1,205', icon: Package, trend: '0%', color: 'warning.main', bg: '#fffbeb' },
+    { label: 'New Customers', value: '12', icon: Users, trend: '+2', color: 'secondary.dark', bg: '#f5f3ff' },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">Welcome back, here&apos;s what&apos;s happening with your POS system today.</p>
-        </div>
-        <Button className="gap-2 shadow-lg shadow-primary/20">
-          <Plus className="h-4 w-4" />
+    <Box sx={{ animation: 'fadeIn 0.5s ease-in', '@keyframes fadeIn': { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'between', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: '-0.025em' }}>
+            Dashboard Overview
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Welcome back, here's what's happening with your POS system today.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Plus size={18} />}
+          sx={{
+            ml: 'auto',
+            px: 3,
+            py: 1.25,
+            borderRadius: 2,
+            boxShadow: '0 10px 15px -3px rgb(79 70 229 / 0.2)',
+          }}
+        >
           Create New Sale
         </Button>
-      </div>
+      </Box>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         {stats.map((stat) => (
-          <Card key={stat.label} className="hover:border-primary/20 transition-colors group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-              <div className={`p-2 rounded-lg ${stat.bg}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <span className={stat.trend.startsWith('+') ? 'text-emerald-600' : 'text-slate-500'}>
-                  {stat.trend}
-                </span>{' '}
-                from last month
-              </p>
+          <Grid item xs={12} sm={6} lg={3} key={stat.label}>
+            <Card sx={{ transition: 'border-color 0.2s', '&:hover': { borderColor: 'primary.light' } }}>
+              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="body2" fontWeight={600} color="text.secondary">
+                    {stat.label}
+                  </Typography>
+                  <Avatar
+                    sx={{
+                      bgcolor: stat.bg,
+                      color: stat.color,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1.5
+                    }}
+                  >
+                    <stat.icon size={20} />
+                  </Avatar>
+                </Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                  {stat.value}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: 700,
+                      color: stat.trend.startsWith('+') ? 'success.main' : 'text.secondary'
+                    }}
+                  >
+                    {stat.trend}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    from last month
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} lg={8}>
+          <Card>
+            <Box sx={{ p: 3, borderBottom: '1px solid var(--border)' }}>
+              <Typography variant="h6" fontWeight={700}>
+                Recent Transactions
+              </Typography>
+            </Box>
+            <CardContent sx={{ p: 2 }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: 'secondary.main' },
+                    transition: 'background-color 0.2s',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: 'secondary.dark', color: 'text.primary', fontWeight: 'bold' }}>
+                      {String.fromCharCode(64 + i)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        Customer #{1000 + i}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        March 12, 2026 • 10:24 AM
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body2" fontWeight={700} color="success.main">
+                      +$240.00
+                    </Typography>
+                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 800, fontSize: 10, letterSpacing: 0.5, color: 'text.disabled' }}>
+                      Completed
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </Grid>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer border border-transparent hover:border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">
-                      {String.fromCharCode(64 + i)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">Customer #{1000 + i}</p>
-                      <p className="text-xs text-muted-foreground">March 11, 2026 • 10:24 AM</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-sm text-emerald-600">+$240.00</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Completed</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Inventory Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {[
-                { name: 'Redmi Note 12', stock: 12, max: 50, color: 'bg-emerald-500' },
-                { name: 'Samsung Galaxy S23', stock: 4, max: 20, color: 'bg-red-500' },
-                { name: 'Apple iPhone 15', stock: 35, max: 40, color: 'bg-blue-500' },
-                { name: 'Sony Headphones', stock: 15, max: 30, color: 'bg-amber-500' },
-              ].map((item) => (
-                <div key={item.name} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{item.name}</span>
-                    <span className="text-muted-foreground">{item.stock} / {item.max}</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${item.color}`}
-                      style={{ width: `${(item.stock / item.max) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" className="w-full mt-8">View Full Inventory</Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <Grid item xs={12} lg={4}>
+          <Card>
+            <Box sx={{ p: 3, borderBottom: '1px solid var(--border)' }}>
+              <Typography variant="h6" fontWeight={700}>
+                Inventory Status
+              </Typography>
+            </Box>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {[
+                  { name: 'Redmi Note 12', stock: 12, max: 50, color: '#10b981' },
+                  { name: 'Samsung Galaxy S23', stock: 4, max: 20, color: '#ef4444' },
+                  { name: 'Apple iPhone 15', stock: 35, max: 40, color: '#3b82f6' },
+                  { name: 'Sony Headphones', stock: 15, max: 30, color: '#f59e0b' },
+                ].map((item) => (
+                  <Box key={item.name}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" fontWeight={600}>{item.name}</Typography>
+                      <Typography variant="caption" color="text.secondary">{item.stock} / {item.max}</Typography>
+                    </Box>
+                    <Box sx={{ height: 8, width: '100%', bgcolor: 'secondary.main', borderRadius: 4, overflow: 'hidden' }}>
+                      <Box sx={{ height: '100%', width: `${(item.stock / item.max) * 100}%`, bgcolor: item.color }} />
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+              <Button variant="outlined" fullWidth sx={{ mt: 4, py: 1.25, borderRadius: 2 }}>
+                View Full Inventory
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

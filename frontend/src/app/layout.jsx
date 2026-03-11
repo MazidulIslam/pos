@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layouts/Sidebar";
 import { Header } from "@/components/layouts/Header";
+import MUIProvider from "@/components/MUIProvider";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -20,15 +21,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.variable} font-sans antialiased text-slate-900`}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <div className="flex flex-1 flex-col">
-            <Header />
-            <main className="flex-1 p-6 mt-[var(--header-height)] lg:ml-[var(--sidebar-width)] overflow-x-hidden">
-              {children}
-            </main>
+        <MUIProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="flex flex-1 flex-col">
+              <Header />
+              <main className="flex-1 p-6 mt-[var(--header-height)] lg:ml-[var(--sidebar-width)] overflow-x-hidden">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </MUIProvider>
       </body>
     </html>
   );

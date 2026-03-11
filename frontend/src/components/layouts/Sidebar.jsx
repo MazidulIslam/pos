@@ -4,6 +4,18 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Box,
+    Typography,
+    Button as MuiButton,
+    Divider
+} from '@mui/material';
+import {
     LayoutDashboard,
     Package,
     Users,
@@ -13,7 +25,6 @@ import {
     LogOut,
     ChevronRight
 } from 'lucide-react';
-import { cn } from '@/utils/cn';
 
 const menuItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/' },
@@ -28,46 +39,103 @@ export const Sidebar = () => {
     const pathname = usePathname();
 
     return (
-        <aside className="fixed left-0 top-0 z-40 h-screen w-[var(--sidebar-width)] border-r border-border bg-white hidden lg:flex flex-col">
-            <div className="flex h-[var(--header-height)] items-center px-6">
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                        <span className="font-bold text-white text-lg">M</span>
-                    </div>
-                    <span className="text-xl font-bold tracking-tight">Modern<span className="text-primary">POS</span></span>
-                </div>
-            </div>
+        <Drawer
+            variant="permanent"
+            sx={{
+                width: 'var(--sidebar-width)',
+                flexShrink: 0,
+                display: { xs: 'none', lg: 'block' },
+                '& .MuiDrawer-paper': {
+                    width: 'var(--sidebar-width)',
+                    boxSizing: 'border-box',
+                    borderRight: '1px solid var(--border)',
+                    bgcolor: 'background.paper',
+                },
+            }}
+        >
+            <Box sx={{ height: 'var(--header-height)', display: 'flex', alignItems: 'center', px: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box
+                        sx={{
+                            height: 32,
+                            width: 32,
+                            borderRadius: 1,
+                            bgcolor: 'primary.main',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 4px 6px -1px rgb(79 70 229 / 0.2)',
+                        }}
+                    >
+                        <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>
+                            M
+                        </Typography>
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: '-0.025em' }}>
+                        Modern<Box component="span" sx={{ color: 'primary.main' }}>POS</Box>
+                    </Typography>
+                </Box>
+            </Box>
 
-            <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-                {menuItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                                isActive
-                                    ? "bg-primary/5 text-primary"
-                                    : "text-muted-foreground hover:bg-slate-50 hover:text-slate-900"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <item.icon className={cn("h-5 w-5 shrink-0 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-slate-900")} />
-                                <span>{item.label}</span>
-                            </div>
-                            {isActive && <ChevronRight className="h-4 w-4" />}
-                        </Link>
-                    );
-                })}
-            </nav>
+            <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 3 }}>
+                <List sx={{ p: 0 }}>
+                    {menuItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
+                                <ListItemButton
+                                    component={Link}
+                                    href={item.href}
+                                    sx={{
+                                        borderRadius: 2,
+                                        py: 1.25,
+                                        px: 1.5,
+                                        bgcolor: isActive ? 'primary.light' : 'transparent',
+                                        color: isActive ? 'primary.main' : 'text.secondary',
+                                        '&:hover': {
+                                            bgcolor: isActive ? 'primary.light' : 'secondary.main',
+                                            color: isActive ? 'primary.main' : 'text.primary',
+                                        },
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 40, color: 'inherit' }}>
+                                        <item.icon size={20} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={item.label}
+                                        primaryTypographyProps={{
+                                            fontSize: 14,
+                                            fontWeight: isActive ? 600 : 500,
+                                        }}
+                                    />
+                                    {isActive && <ChevronRight size={16} />}
+                                </ListItemButton>
+                            </ListItem>
+                        );
+                    })}
+                </List>
+            </Box>
 
-            <div className="p-4 border-t border-border">
-                <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                    <LogOut className="h-5 w-5" />
-                    <span>Sign Out</span>
-                </button>
-            </div>
-        </aside>
+            <Box sx={{ p: 2, mb: 1 }}>
+                <Divider sx={{ mb: 2 }} />
+                <MuiButton
+                    fullWidth
+                    startIcon={<LogOut size={20} />}
+                    sx={{
+                        justifyContent: 'flex-start',
+                        color: 'error.main',
+                        px: 1.5,
+                        py: 1.25,
+                        borderRadius: 2,
+                        '&:hover': { bgcolor: 'error.main', color: 'white', opacity: 0.1 },
+                        textTransform: 'none',
+                        fontSize: 14,
+                    }}
+                >
+                    Sign Out
+                </MuiButton>
+            </Box>
+        </Drawer>
     );
 };
