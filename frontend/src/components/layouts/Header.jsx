@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AppBar,
   Toolbar,
@@ -10,9 +11,14 @@ import {
   Badge,
   Typography,
   Avatar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from "@mui/material";
 import { useSidebar } from "./SidebarContext";
-import { Search, Bell, Menu } from "lucide-react";
+import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut } from "lucide-react";
 import { styled, alpha } from "@mui/material/styles";
 
 const SearchContainer = styled("div")(({ theme }) => ({
@@ -64,6 +70,24 @@ export const Header = () => {
   const { isExpanded, setIsMobileOpen } = useSidebar();
   const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
+  const [anchorEl, setAnchorEl] = useState(null);
+  const router = useRouter();
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleMenuClose();
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
+
   return (
     <AppBar
       position="fixed"
@@ -88,7 +112,7 @@ export const Header = () => {
           onClick={() => setIsMobileOpen(true)}
           sx={{ mr: 2, display: { lg: "none" } }}
         >
-          <Menu />
+          <MenuIcon />
         </IconButton>
 
         <Box sx={{ flexGrow: 1, display: { xs: "none", md: "block" } }}>
@@ -131,6 +155,7 @@ export const Header = () => {
               </Typography>
             </Box>
             <Avatar
+              onClick={handleMenuOpen}
               sx={{
                 width: 36,
                 height: 36,
@@ -138,10 +163,95 @@ export const Header = () => {
                 color: "primary.main",
                 fontWeight: "bold",
                 fontSize: 14,
+                cursor: "pointer",
               }}
             >
               MI
             </Avatar>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+              PaperProps={{
+                elevation: 0,
+                sx: {
+                  overflow: "visible",
+                  filter: "drop-shadow(0px 10px 25px rgba(0,0,0,0.1))",
+                  mt: 1.5,
+                  minWidth: 200,
+                  borderRadius: 3,
+                  border: "1px solid var(--border)",
+                  "& .MuiMenuItem-root": {
+                    px: 2,
+                    py: 1.25,
+                    borderRadius: 1.5,
+                    mx: 1,
+                    my: 0.5,
+                    "&:hover": {
+                      bgcolor: "secondary.main",
+                    },
+                  },
+                  "& .MuiListItemIcon-root": {
+                    minWidth: 32,
+                  },
+                },
+              }}
+            >
+              <Box sx={{ px: 2, py: 1.5, display: { xs: "block", sm: "none" } }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  Mazidul Islam
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Admin
+                </Typography>
+              </Box>
+              <Box sx={{ display: { xs: "block", sm: "none" } }}>
+                <Divider sx={{ my: 0.5 }} />
+              </Box>
+
+              <MenuItem onClick={handleMenuClose}>
+                <ListItemIcon>
+                  <User size={18} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="My Profile"
+                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                />
+              </MenuItem>
+              <MenuItem onClick={handleMenuClose}>
+                <ListItemIcon>
+                  <Settings size={18} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Account Settings"
+                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                />
+              </MenuItem>
+
+              <Divider sx={{ my: 1 }} />
+
+              <MenuItem
+                onClick={handleLogout}
+                sx={{
+                  color: "error.main",
+                  "&:hover": {
+                    bgcolor: "error.light !important",
+                    color: "error.dark",
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: "inherit !important" }}>
+                  <LogOut size={18} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Sign Out"
+                  primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}
+                />
+              </MenuItem>
+            </Menu>
           </Box>
         </Box>
       </Toolbar>
