@@ -24,9 +24,18 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+
+  React.useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      setFormData((prev) => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const highlights = useMemo(
     () => [
@@ -68,6 +77,12 @@ export default function LoginPage() {
       // Store token (in a real app, use secure cookies or more robust state management)
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(data.data.user));
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", formData.email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
 
       // Redirect to dashboard
       router.push("/");
@@ -335,7 +350,12 @@ export default function LoginPage() {
                 }}
               >
                 <FormControlLabel
-                  control={<Checkbox defaultChecked />}
+                  control={
+                    <Checkbox
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                  }
                   label={
                     <Typography component="span" variant="body2" color="text.secondary">
                       Remember me
