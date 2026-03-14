@@ -480,7 +480,7 @@ export const Sidebar = () => {
     <Box
       component="nav"
       sx={{
-        width: { lg: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH },
+        width: { lg: COLLAPSED_WIDTH },
         flexShrink: { lg: 0 },
       }}
     >
