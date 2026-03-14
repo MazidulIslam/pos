@@ -1,5 +1,5 @@
 const { verifyToken } = require("../utils/jwt");
-const { User } = require("../models");
+const { User, BlacklistedToken } = require("../models");
 
 /**
  * Middleware to protect routes by verifying JWT
@@ -16,11 +16,25 @@ const protect = async (req, res, next) => {
             // 2. Extract token
             token = req.headers.authorization.split(" ")[1];
 
-            // 3. Verify token
+            // 3. Verify token mathematically
             const decoded = verifyToken(token);
 
-            // 4. Find user by id from token payload and attach to request
+            // 4. Check if token is physically blacklisted
+            const isBlacklisted = await BlacklistedToken.findOne({
+                where: { token },
+            });
+
+            if (isBlacklisted) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Not authorized, token has been invalidated",
+                });
+            }
+
+            // 5. Find user by id from token payload and attach to request
             req.user = await User.findByPk(decoded.id);
+            req.token = token;
+            req.tokenExp = decoded.exp;
 
             if (!req.user) {
                 return res.status(401).json({

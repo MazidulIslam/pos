@@ -116,10 +116,24 @@ export const Sidebar = () => {
   const [openMenus, setOpenMenus] = useState(initialOpenMenus);
   const router = useRouter();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await fetch("http://localhost:5050/api/auth/logout", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Failed to blacklist token on logout", error);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.push("/login");
+    }
   };
 
   useEffect(() => {

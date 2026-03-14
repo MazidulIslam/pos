@@ -72,7 +72,34 @@ const login = async (req, res) => {
     }
 };
 
+/**
+ * Handle user logout by blacklisting the token
+ * @route POST /api/auth/logout
+ */
+const logout = async (req, res) => {
+    try {
+        const token = req.token;
+        const exp = req.tokenExp;
+
+        if (token && exp) {
+            await authService.blacklistToken(token, exp);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Logout successful",
+        });
+    } catch (error) {
+        console.error("Logout error:", error);
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "An unexpected error occurred during logout",
+        });
+    }
+};
+
 module.exports = {
     register,
     login,
+    logout,
 };

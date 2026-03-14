@@ -95,7 +95,23 @@ const loginUser = async (email, password) => {
     return { user: userWithoutPassword, token };
 };
 
+/**
+ * Service to handle user logout by blacklisting the token
+ * @param {string} token - The active JWT
+ * @param {number} exp - The expiration timestamp of the token
+ */
+const blacklistToken = async (token, exp) => {
+    const { BlacklistedToken } = require("../models");
+    const expiresAt = new Date(exp * 1000);
+
+    await BlacklistedToken.create({
+        token,
+        expiresAt,
+    });
+};
+
 module.exports = {
     registerUser,
     loginUser,
+    blacklistToken,
 };
