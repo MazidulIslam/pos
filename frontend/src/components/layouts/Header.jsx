@@ -67,8 +67,8 @@ const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
 
 export const Header = () => {
-  const { setIsMobileOpen } = useSidebar();
-  const sidebarWidth = COLLAPSED_WIDTH;
+  const { isExpanded, setIsMobileOpen } = useSidebar();
+  const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   const [anchorEl, setAnchorEl] = useState(null);
   const router = useRouter();
@@ -101,7 +101,8 @@ export const Header = () => {
         height: "var(--header-height)",
         justifyContent: "center",
         zIndex: 1100, // Ensure header sits slightly below sidebar flyout
-        transition: "width 0.3s ease, margin-left 0.3s ease",
+        transition:
+          "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       <Toolbar>
