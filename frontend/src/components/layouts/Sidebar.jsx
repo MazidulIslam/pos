@@ -96,7 +96,13 @@ const isPathActive = (pathname, href) => {
 
 export const Sidebar = () => {
   const pathname = usePathname();
-  const { isExpanded, setIsExpanded } = useSidebar();
+  const {
+    isExpanded: isDesktopExpanded,
+    setIsExpanded,
+    isMobileOpen,
+    setIsMobileOpen,
+  } = useSidebar();
+  const isExpanded = isDesktopExpanded || isMobileOpen;
 
   const initialOpenMenus = useMemo(() => {
     return menuItems.reduce((acc, item) => {
@@ -138,29 +144,8 @@ export const Sidebar = () => {
     }));
   };
 
-  return (
-    <Drawer
-      variant="permanent"
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
-      sx={{
-        width: COLLAPSED_WIDTH,
-        flexShrink: 0,
-        display: { xs: "none", lg: "block" },
-        "& .MuiDrawer-paper": {
-          width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
-          boxSizing: "border-box",
-          borderRight: "1px solid var(--border)",
-          bgcolor: "background.paper",
-          overflow: "hidden",
-          transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          zIndex: isExpanded ? 1300 : 1200,
-          boxShadow: isExpanded ? "4px 0 24px -4px rgba(0,0,0,0.10)" : "none",
-          display: "flex",
-          flexDirection: "column",
-        },
-      }}
-    >
+  const drawerContent = (
+    <>
       <Box
         sx={{
           height: "var(--header-height)",
@@ -247,7 +232,13 @@ export const Sidebar = () => {
               <ListItemButton
                 component={hasChildren ? "button" : Link}
                 href={hasChildren ? undefined : item.href}
-                onClick={hasChildren ? () => toggleMenu(item.label) : undefined}
+                onClick={(e) => {
+                  if (hasChildren) {
+                    toggleMenu(item.label);
+                  } else {
+                    setIsMobileOpen(false);
+                  }
+                }}
                 sx={{
                   borderRadius: 2,
                   py: 1.25,
@@ -358,6 +349,7 @@ export const Sidebar = () => {
                             <ListItemButton
                               component={Link}
                               href={child.href}
+                              onClick={() => setIsMobileOpen(false)}
                               sx={{
                                 ml: 1,
                                 pl: 2,
@@ -481,6 +473,64 @@ export const Sidebar = () => {
           </ListItemButton>
         </Tooltip>
       </Box>
-    </Drawer>
+    </>
+  );
+
+  return (
+    <Box
+      component="nav"
+      sx={{
+        width: { lg: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH },
+        flexShrink: { lg: 0 },
+      }}
+    >
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: "block", lg: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: EXPANDED_WIDTH,
+            borderRight: "1px solid var(--border)",
+            bgcolor: "background.paper",
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Desktop Drawer */}
+      <Drawer
+        variant="permanent"
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        sx={{
+          display: { xs: "none", lg: "block" },
+          "& .MuiDrawer-paper": {
+            width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+            boxSizing: "border-box",
+            borderRight: "1px solid var(--border)",
+            bgcolor: "background.paper",
+            overflow: "hidden",
+            transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            zIndex: isExpanded ? 1300 : 1200,
+            boxShadow: isExpanded ? "4px 0 24px -4px rgba(0,0,0,0.10)" : "none",
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+    </Box>
   );
 };
+

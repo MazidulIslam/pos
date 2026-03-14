@@ -61,7 +61,7 @@ const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
 
 export const Header = () => {
-  const { isExpanded } = useSidebar();
+  const { isExpanded, setIsMobileOpen } = useSidebar();
   const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   return (
@@ -85,6 +85,7 @@ export const Header = () => {
           color="inherit"
           aria-label="open drawer"
           edge="start"
+          onClick={() => setIsMobileOpen(true)}
           sx={{ mr: 2, display: { lg: "none" } }}
         >
           <Menu />
