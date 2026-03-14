@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
@@ -22,6 +23,10 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
 
   const highlights = useMemo(
     () => [
@@ -31,6 +36,47 @@ export default function LoginPage() {
     ],
     [],
   );
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!formData.email || !formData.password) {
+      setErrorMsg("Please fill in both email and password.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // In Docker composed environment, the frontend browser makes the request to localhost:5050
+      const res = await fetch("http://localhost:5050/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to login");
+      }
+
+      // Store token (in a real app, use secure cookies or more robust state management)
+      localStorage.setItem("token", data.data.token);
+      localStorage.setItem("user", JSON.stringify(data.data.user));
+
+      // Redirect to dashboard
+      router.push("/");
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Box
@@ -219,17 +265,25 @@ export default function LoginPage() {
               </Typography>
             </Box>
 
+            {errorMsg && (
+              <Box sx={{ mb: 3, p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2, border: "1px solid #f87171" }}>
+                <Typography variant="body2" fontWeight={600}>{errorMsg}</Typography>
+              </Box>
+            )}
+
             <Stack
               component="form"
               spacing={2.25}
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleLogin}
             >
               <TextField
                 fullWidth
                 label="Email address"
                 type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
                 placeholder="you@example.com"
-                defaultValue=""
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -243,6 +297,9 @@ export default function LoginPage() {
                 fullWidth
                 label="Password"
                 type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
                 placeholder="Enter your password"
                 InputProps={{
                   startAdornment: (
@@ -302,6 +359,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 variant="contained"
+                disabled={isLoading}
                 endIcon={<ArrowRight size={18} />}
                 sx={{
                   mt: 1,
@@ -313,7 +371,7 @@ export default function LoginPage() {
                   boxShadow: "0 12px 24px rgba(79,70,229,0.24)",
                 }}
               >
-                Sign in to dashboard
+                {isLoading ? "Signing in..." : "Sign in to dashboard"}
               </Button>
             </Stack>
 

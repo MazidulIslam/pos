@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Drawer,
   List,
@@ -108,6 +108,13 @@ export const Sidebar = () => {
   }, [pathname]);
 
   const [openMenus, setOpenMenus] = useState(initialOpenMenus);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
 
   useEffect(() => {
     setOpenMenus((prev) => {
@@ -428,6 +435,7 @@ export const Sidebar = () => {
           disableInteractive
         >
           <ListItemButton
+            onClick={handleLogout}
             sx={{
               borderRadius: 2,
               py: 1.25,

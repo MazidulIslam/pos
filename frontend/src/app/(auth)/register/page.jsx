@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
@@ -50,6 +51,71 @@ const features = [
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (
+      !formData.firstName ||
+      !formData.username ||
+      !formData.email ||
+      !formData.password
+    ) {
+      setErrorMsg("Please fill in all required fields.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      };
+
+      const res = await fetch("http://localhost:5050/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      // Registration success, redirect to login
+      router.push("/login");
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Box
@@ -324,16 +390,25 @@ export default function RegisterPage() {
                   <Divider sx={{ flex: 1 }} />
                 </Stack>
 
+                {errorMsg && (
+                  <Box sx={{ p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2, border: "1px solid #f87171" }}>
+                    <Typography variant="body2" fontWeight={600}>{errorMsg}</Typography>
+                  </Box>
+                )}
+
                 <Stack
                   component="form"
                   spacing={2}
-                  onSubmit={(e) => e.preventDefault()}
+                  onSubmit={handleRegister}
                 >
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         label="First name"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
                         placeholder="Mazidul"
                         variant="outlined"
                       />
@@ -342,6 +417,9 @@ export default function RegisterPage() {
                       <TextField
                         fullWidth
                         label="Last name"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
                         placeholder="Islam"
                         variant="outlined"
                       />
@@ -350,8 +428,11 @@ export default function RegisterPage() {
 
                   <TextField
                     fullWidth
-                    label="Business name"
-                    placeholder="Modern POS Store"
+                    label="Username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="modern_pos_admin"
                     variant="outlined"
                   />
 
@@ -359,6 +440,9 @@ export default function RegisterPage() {
                     fullWidth
                     label="Email address"
                     type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
                     placeholder="you@example.com"
                     variant="outlined"
                   />
@@ -367,6 +451,9 @@ export default function RegisterPage() {
                     fullWidth
                     label="Password"
                     type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
                     placeholder="Create a secure password"
                     variant="outlined"
                     InputProps={{
@@ -392,6 +479,9 @@ export default function RegisterPage() {
                     fullWidth
                     label="Confirm password"
                     type={showPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
                     placeholder="Confirm your password"
                     variant="outlined"
                   />
@@ -423,6 +513,7 @@ export default function RegisterPage() {
                     type="submit"
                     fullWidth
                     variant="contained"
+                    disabled={isLoading}
                     endIcon={<ArrowRight size={18} />}
                     sx={{
                       mt: 1,
@@ -434,7 +525,7 @@ export default function RegisterPage() {
                       boxShadow: "0 16px 30px rgba(79,70,229,0.28)",
                     }}
                   >
-                    Create account
+                    {isLoading ? "Creating account..." : "Create account"}
                   </Button>
                 </Stack>
 
