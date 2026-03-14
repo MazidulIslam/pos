@@ -1,0 +1,75 @@
+<svg width="640" height="480" viewBox="0 0 640 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGlow" x1="120" y1="80" x2="520" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF2FF"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="232" y1="110" x2="418" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="208" y1="164" x2="440" y2="318" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <filter id="shadow" x="148" y="78" width="344" height="340" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="22"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.309804 0 0 0 0 0.27451 0 0 0 0 0.898039 0 0 0 0.14 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_404"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_404" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="480" rx="28" fill="#F8FAFC"/>
+  <circle cx="112" cy="96" r="56" fill="#EDE9FE"/>
+  <circle cx="550" cy="118" r="34" fill="#DBEAFE"/>
+  <circle cx="516" cy="382" r="52" fill="#E0F2FE"/>
+  <circle cx="88" cy="370" r="24" fill="#FCE7F3"/>
+  <path d="M74 154C96.0914 154 114 136.091 114 114C114 91.9086 96.0914 74 74 74C51.9086 74 34 91.9086 34 114C34 136.091 51.9086 154 74 154Z" fill="url(#bgGlow)" opacity="0.55"/>
+
+  <g opacity="0.9">
+    <path d="M126 248C126 248 145.5 212 184 208" stroke="#C7D2FE" stroke-width="6" stroke-linecap="round"/>
+    <path d="M474 153C474 153 493 137 517 144" stroke="#BFDBFE" stroke-width="6" stroke-linecap="round"/>
+    <path d="M483 302C483 302 505 287 531 296" stroke="#C4B5FD" stroke-width="6" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="192" y="104" width="256" height="252" rx="28" fill="url(#cardGrad)"/>
+    <rect x="192" y="104" width="256" height="252" rx="28" stroke="#E2E8F0" stroke-width="2"/>
+
+    <rect x="224" y="132" width="92" height="18" rx="9" fill="#E0E7FF"/>
+    <rect x="326" y="132" width="46" height="18" rx="9" fill="#F1F5F9"/>
+
+    <g>
+      <circle cx="257" cy="225" r="56" fill="#EEF2FF"/>
+      <path d="M257 180C232.147 180 212 200.147 212 225C212 249.853 232.147 270 257 270C281.853 270 302 249.853 302 225C302 200.147 281.853 180 257 180ZM257 196C272.464 196 285.5 209.036 285.5 224.5C285.5 239.964 272.464 253 257 253C241.536 253 228.5 239.964 228.5 224.5C228.5 209.036 241.536 196 257 196Z" fill="url(#accentGrad)"/>
+      <path d="M246.5 214.5L267.5 235.5" stroke="url(#accentGrad)" stroke-width="10" stroke-linecap="round"/>
+      <path d="M267.5 214.5L246.5 235.5" stroke="url(#accentGrad)" stroke-width="10" stroke-linecap="round"/>
+    </g>
+
+    <g>
+      <path d="M334 201H389" stroke="#CBD5E1" stroke-width="10" stroke-linecap="round"/>
+      <path d="M334 226H405" stroke="#CBD5E1" stroke-width="10" stroke-linecap="round"/>
+      <path d="M334 251H379" stroke="#E2E8F0" stroke-width="10" stroke-linecap="round"/>
+    </g>
+
+    <rect x="224" y="300" width="192" height="26" rx="13" fill="#EEF2FF"/>
+    <path d="M287 313H353" stroke="#6366F1" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g>
+    <path d="M152 338L177 313" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"/>
+    <path d="M177 338L152 313" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="164.5" cy="325.5" r="30.5" stroke="#CBD5E1" stroke-width="8"/>
+    <path d="M178 347L206 375" stroke="#94A3B8" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <g opacity="0.95">
+    <text x="320" y="430" text-anchor="middle" fill="#475569" font-size="18" font-family="Inter, Arial, sans-serif" font-weight="600">
+      Page not found
+    </text>
+  </g>
+</svg>

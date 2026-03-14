@@ -1,9 +1,5 @@
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layouts/Sidebar";
-import { Header } from "@/components/layouts/Header";
-import { MainContent } from "@/components/layouts/MainContent";
-import { SidebarProvider } from "@/components/layouts/SidebarContext";
 import MUIProvider from "@/components/MUIProvider";
 
 const outfit = Outfit({
@@ -18,21 +14,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${outfit.variable} font-sans antialiased text-slate-900`}
+        suppressHydrationWarning
       >
-        <MUIProvider>
-          <SidebarProvider>
-            <div className="flex min-h-screen">
-              <Sidebar />
-              <div className="flex flex-1 flex-col">
-                <Header />
-                <MainContent>{children}</MainContent>
-              </div>
-            </div>
-          </SidebarProvider>
-        </MUIProvider>
+        <MUIProvider>{children}</MUIProvider>
       </body>
     </html>
   );
