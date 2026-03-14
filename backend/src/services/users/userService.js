@@ -1,5 +1,5 @@
-const { User } = require("../models");
-const { hashPassword, comparePassword } = require("../utils/password");
+const { User } = require("../../models");
+const { hashPassword, comparePassword } = require("../../utils/password");
 
 class UserService {
     async getUserProfile(userId) {

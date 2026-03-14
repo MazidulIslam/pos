@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const userController = require("../controllers/userController");
-const { protect } = require("../middlewares/authMiddleware");
+const userController = require("../../controllers/users/userController");
+const { protect } = require("../../middlewares/authMiddleware");
 
 // All user routes are protected
 router.use(protect);

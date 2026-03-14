@@ -13,11 +13,17 @@ app.use(express.json());
 connectDB();
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
+const authRoutes = require('./routes/auth/authRoutes');
+const userRoutes = require('./routes/users/userRoutes');
+const productRoutes = require('./routes/products/productRoutes');
+const customerRoutes = require('./routes/customers/customerRoutes');
+const saleRoutes = require('./routes/sales/saleRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/sales', saleRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Modern POS API is running' });

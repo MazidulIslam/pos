@@ -1,6 +1,6 @@
-const { User } = require("../models");
-const { hashPassword, comparePassword } = require("../utils/password");
-const { generateToken } = require("../utils/jwt");
+const { User } = require("../../models");
+const { hashPassword, comparePassword } = require("../../utils/password");
+const { generateToken } = require("../../utils/jwt");
 
 /**
  * Service to handle user registration
@@ -101,7 +101,7 @@ const loginUser = async (email, password) => {
  * @param {number} exp - The expiration timestamp of the token
  */
 const blacklistToken = async (token, exp) => {
-    const { BlacklistedToken } = require("../models");
+    const { BlacklistedToken } = require("../../models");
     const expiresAt = new Date(exp * 1000);
 
     await BlacklistedToken.create({
