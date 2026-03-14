@@ -17,7 +17,7 @@ const connectDB = async (retries = 5) => {
     try {
       await sequelize.authenticate();
       console.log("PostgreSQL connected successfully.");
-      await sequelize.sync();
+      await sequelize.sync({ alter: true });
       console.log("Database synchronized.");
       return;
     } catch (error) {

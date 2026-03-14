@@ -212,7 +212,7 @@ export const Header = () => {
                 <Divider sx={{ my: 0.5 }} />
               </Box>
 
-              <MenuItem onClick={handleMenuClose}>
+              <MenuItem onClick={() => { handleMenuClose(); router.push('/profile'); }}>
                 <ListItemIcon>
                   <User size={18} />
                 </ListItemIcon>
@@ -221,7 +221,7 @@ export const Header = () => {
                   primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
                 />
               </MenuItem>
-              <MenuItem onClick={handleMenuClose}>
+              <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/account'); }}>
                 <ListItemIcon>
                   <Settings size={18} />
                 </ListItemIcon>
