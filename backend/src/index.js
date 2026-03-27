@@ -18,12 +18,16 @@ const userRoutes = require('./routes/users/userRoutes');
 const productRoutes = require('./routes/products/productRoutes');
 const customerRoutes = require('./routes/customers/customerRoutes');
 const saleRoutes = require('./routes/sales/saleRoutes');
+const menuRoutes = require('./routes/menus/menuRoutes');
+const roleRoutes = require('./routes/roles/roleRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/sales', saleRoutes);
+app.use('/api/menus', menuRoutes);
+app.use('/api/roles', roleRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Modern POS API is running' });

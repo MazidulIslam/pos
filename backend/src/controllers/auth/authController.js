@@ -53,13 +53,15 @@ const login = async (req, res) => {
             });
         }
 
-        const { user, token } = await authService.loginUser(email, password);
+        const { user, token, permissions, menus } = await authService.loginUser(email, password);
 
         return res.status(200).json({
             success: true,
             data: {
                 user,
                 token,
+                permissions,
+                menus
             },
             message: "Login successful",
         });

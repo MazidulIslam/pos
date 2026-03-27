@@ -61,6 +61,25 @@ class UserController {
             });
         }
     }
+    async assignPermissions(req, res) {
+        try {
+            const { id } = req.params;
+            const { permissionIds } = req.body;
+            
+            const { User, Permission } = require('../../models');
+            const user = await User.findByPk(id);
+            if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+            if (Array.isArray(permissionIds)) {
+                await user.setDirectPermissions(permissionIds);
+            }
+
+            const updatedUser = await User.findByPk(id, { include: [{ model: Permission, as: 'directPermissions' }] });
+            return res.status(200).json({ success: true, message: 'Direct permissions assigned to User', data: updatedUser });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
 }
 
 module.exports = new UserController();

@@ -1,4 +1,4 @@
-const { User } = require("../../models");
+const { User, Role, Menu, Permission } = require("../../models");
 const { hashPassword, comparePassword } = require("../../utils/password");
 const { generateToken } = require("../../utils/jwt");
 
@@ -63,6 +63,18 @@ const loginUser = async (email, password) => {
     // 1. Find user by email (explicitly including password for comparison)
     const user = await User.scope("withPassword").findOne({
         where: { email },
+        include: [
+            {
+                model: Role,
+                as: 'role',
+                include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }]
+            },
+            {
+                model: Permission,
+                as: 'directPermissions',
+                through: { attributes: [] }
+            }
+        ]
     });
 
     if (!user) {
@@ -92,7 +104,31 @@ const loginUser = async (email, password) => {
     const userWithoutPassword = user.toJSON();
     delete userWithoutPassword.password;
 
-    return { user: userWithoutPassword, token };
+    // 5. Merge permissions and filter menus
+    let mergedPermissions = [];
+    let allMenus = [];
+    
+    if (user.role && user.role.name === 'Super Admin') {
+        mergedPermissions = ['*'];
+        allMenus = await Menu.findAll({ where: { isActive: true }, order: [['sortOrder', 'ASC']] });
+    } else {
+        const rolePerms = user.role && user.role.permissions ? user.role.permissions.map(p => p.action) : [];
+        const directPerms = user.directPermissions ? user.directPermissions.map(p => p.action) : [];
+        mergedPermissions = [...new Set([...rolePerms, ...directPerms])];
+        
+        const activeMenus = await Menu.findAll({ 
+            where: { isActive: true }, 
+            include: [{ model: Permission, as: 'permissions' }],
+            order: [['sortOrder', 'ASC']] 
+        });
+
+        allMenus = activeMenus.filter(menu => {
+            if (!menu.permissions || menu.permissions.length === 0) return true;
+            return menu.permissions.some(p => mergedPermissions.includes(p.action));
+        });
+    }
+
+    return { user: userWithoutPassword, token, permissions: mergedPermissions, menus: allMenus };
 };
 
 /**

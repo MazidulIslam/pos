@@ -52,6 +52,22 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.UUID,
                 allowNull: true, // Optional linking to Role for robust access control
             },
+            createdBy: {
+                type: DataTypes.UUID,
+                allowNull: true,
+            },
+            updatedBy: {
+                type: DataTypes.UUID,
+                allowNull: true,
+            },
+            organization_id: {
+                type: DataTypes.UUID,
+                allowNull: true,
+            },
+            note: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
         },
         {
             tableName: "users",
@@ -71,6 +87,14 @@ module.exports = (sequelize, DataTypes) => {
         // A user belongs to a role
         if (models.Role) {
             User.belongsTo(models.Role, { foreignKey: "roleId", as: "role" });
+        }
+        if (models.Permission) {
+            User.belongsToMany(models.Permission, {
+                through: "user_permissions",
+                foreignKey: "user_id",
+                otherKey: "permission_id",
+                as: "directPermissions"
+            });
         }
     };
 

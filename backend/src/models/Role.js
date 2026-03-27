@@ -19,15 +19,25 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      permissions: {
-        type: DataTypes.JSONB,
-        allowNull: false,
-        defaultValue: [],
-        comment: "Array of permission strings defining access levels",
-      },
       isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
+      },
+      createdBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      updatedBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      organization_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
+      note: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {
@@ -40,6 +50,14 @@ module.exports = (sequelize, DataTypes) => {
     // A role can belong to many users
     if (models.User) {
       Role.hasMany(models.User, { foreignKey: "roleId", as: "users" });
+    }
+    if (models.Permission) {
+      Role.belongsToMany(models.Permission, {
+          through: "role_permissions",
+          foreignKey: "role_id",
+          otherKey: "permission_id",
+          as: "permissions"
+      });
     }
   };
 
