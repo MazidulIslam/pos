@@ -31,11 +31,14 @@ import {
   CircularProgress
 } from "@mui/material";
 import { Add, Edit, Delete, Security } from "@mui/icons-material";
+import { availableIcons } from "../../../../utils/iconMap";
 
 export default function MenusPage() {
   const [menus, setMenus] = useState([]);
   const [openUserModal, setOpenUserModal] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState(null);
+  const [iconModalOpen, setIconModalOpen] = useState(false);
+  const [iconSearch, setIconSearch] = useState("");
 
   // Form states
   const [formData, setFormData] = useState({ name: "", slug: "", path: "", icon: "", sortOrder: 0, parent_id: "" });
@@ -212,7 +215,9 @@ export default function MenusPage() {
                 <TableCell>{m.name}</TableCell>
                 <TableCell>{m.slug}</TableCell>
                 <TableCell>{m.path}</TableCell>
-                <TableCell>{m.icon}</TableCell>
+                <TableCell>
+                  {m.icon && availableIcons[m.icon] ? React.createElement(availableIcons[m.icon]) : m.icon}
+                </TableCell>
                 <TableCell>{m.sortOrder}</TableCell>
                 <TableCell>
                   {m.permissions?.length} Actions
@@ -239,7 +244,14 @@ export default function MenusPage() {
           <TextField margin="dense" label="Menu Name" fullWidth value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
           <TextField margin="dense" label="Slug (e.g. products)" fullWidth value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} />
           <TextField margin="dense" label="Route Path (e.g. /products)" fullWidth value={formData.path} onChange={(e) => setFormData({ ...formData, path: e.target.value })} />
-          <TextField margin="dense" label="Icon Name (e.g. Dashboard)" fullWidth value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} helperText="Uses @mui/icons-material. Enter exact name like 'Dashboard' or 'People'" />
+          
+          <Box display="flex" gap={2} alignItems="flex-start" mt={1} mb={1}>
+            <TextField margin="dense" label="Icon Name" fullWidth value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} helperText="Uses curated @mui/icons-material library." />
+            <Button variant="outlined" sx={{ mt: 1, height: 40, minWidth: 140 }} onClick={() => setIconModalOpen(true)}>
+              Choose Icon
+            </Button>
+          </Box>
+          
           <TextField margin="dense" label="Sort Order" type="number" fullWidth value={formData.sortOrder} onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })} />
           
           <FormControl fullWidth margin="dense">
@@ -283,6 +295,28 @@ export default function MenusPage() {
         </DialogActions>
       </Dialog>
       
+      {/* Icon Picker Modal */}
+      <Dialog open={iconModalOpen} onClose={() => setIconModalOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Select Menu Icon</DialogTitle>
+        <DialogContent dividers>
+          <TextField autoFocus margin="dense" label="Search Icons..." fullWidth variant="outlined" value={iconSearch} onChange={(e) => setIconSearch(e.target.value)} sx={{ mb: 3 }} />
+          <Box display="flex" flexWrap="wrap" gap={2} justifyContent="center" sx={{ maxHeight: 400, overflowY: 'auto', p: 1 }}>
+            {Object.keys(availableIcons).filter(name => name.toLowerCase().includes(iconSearch.toLowerCase())).map(iconName => {
+              const IconComp = availableIcons[iconName];
+              return (
+                <Box key={iconName} onClick={() => { setFormData({ ...formData, icon: iconName }); setIconModalOpen(false); }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, cursor: 'pointer', '&:hover': { bgcolor: 'primary.50', borderColor: 'primary.main', color: 'primary.main' }, width: 100 }}>
+                  <IconComp fontSize="large" sx={{ mb: 1 }} />
+                  <Typography variant="caption" align="center" noWrap sx={{ width: '100%' }}>{iconName}</Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIconModalOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar open={toast.open} autoHideDuration={4000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
           {toast.message}

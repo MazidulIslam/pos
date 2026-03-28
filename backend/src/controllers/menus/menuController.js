@@ -77,11 +77,38 @@ exports.updateMenu = async (req, res) => {
 
 exports.deleteMenu = async (req, res) => {
     try {
+        const { Menu, Permission, sequelize } = require('../../models');
         const menu = await Menu.findByPk(req.params.id);
         if (!menu) return res.status(404).json({ success: false, message: "Menu not found" });
-        await menu.update({ isActive: false, updatedBy: req.user ? req.user.id : null });
-        await Permission.update({ isActive: false }, { where: { menu_id: menu.id } });
-        return res.status(200).json({ success: true, message: "Menu and permissions soft-deleted" });
+        
+        // Find all child menus linked to this parent (if any)
+        const childMenus = await Menu.findAll({ where: { parent_id: menu.id }, attributes: ['id'] });
+        const affectedMenuIds = [menu.id, ...childMenus.map(m => m.id)];
+
+        // Soft-delete the target menu and its children
+        await Menu.update(
+            { isActive: false, updatedBy: req.user ? req.user.id : null }, 
+            { where: { id: affectedMenuIds } }
+        );
+
+        // Fetch all permissions bound to these menus
+        const affectedPermissions = await Permission.findAll({ where: { menu_id: affectedMenuIds }, attributes: ['id'] });
+        const affectedPermissionIds = affectedPermissions.map(p => p.id);
+
+        if (affectedPermissionIds.length > 0) {
+            // Soft-delete the permissions natively
+            await Permission.update({ isActive: false, updatedBy: req.user ? req.user.id : null }, { where: { id: affectedPermissionIds } });
+
+            // Hard-delete the pivot bindings using RAW SQL to prevent orphaned associations clogging auth logic
+            await sequelize.query(`DELETE FROM role_permissions WHERE permission_id IN (:ids)`, {
+                replacements: { ids: affectedPermissionIds }
+            });
+            await sequelize.query(`DELETE FROM user_permissions WHERE permission_id IN (:ids)`, {
+                replacements: { ids: affectedPermissionIds }
+            });
+        }
+
+        return res.status(200).json({ success: true, message: "Menu hierarchy, permissions, and all pivot associations securely cleaned up." });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
