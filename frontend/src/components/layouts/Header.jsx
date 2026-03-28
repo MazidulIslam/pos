@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   AppBar,
@@ -72,6 +72,24 @@ export const Header = () => {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const router = useRouter();
+  
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {}
+    }
+  }, []);
+
+  const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : "Loading...";
+  const userRole = user?.role?.name || "User";
+  const getInitials = (name) => {
+    if (!name || name === "Loading...") return "U";
+    return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  };
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -163,10 +181,10 @@ export const Header = () => {
               sx={{ display: { xs: "none", sm: "block" }, textAlign: "right" }}
             >
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Mazidul Islam
+                {userName}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Admin
+                {userRole}
               </Typography>
             </Box>
             <Avatar
@@ -181,7 +199,7 @@ export const Header = () => {
                 cursor: "pointer",
               }}
             >
-              MI
+              {getInitials(userName)}
             </Avatar>
 
             <Menu
@@ -217,10 +235,10 @@ export const Header = () => {
             >
               <Box sx={{ px: 2, py: 1.5, display: { xs: "block", sm: "none" } }}>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Mazidul Islam
+                  {userName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Admin
+                  {userRole}
                 </Typography>
               </Box>
               <Box sx={{ display: { xs: "block", sm: "none" } }}>

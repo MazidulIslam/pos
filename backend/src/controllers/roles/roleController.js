@@ -22,6 +22,20 @@ exports.createRole = async (req, res) => {
     }
 };
 
+exports.updateRole = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+        const role = await Role.findByPk(id);
+        if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
+
+        await role.update({ name, description });
+        return res.status(200).json({ success: true, message: 'Role updated successfully', data: role });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 exports.assignPermissionsToRole = async (req, res) => {
     try {
         const { id } = req.params;

@@ -1,6 +1,62 @@
 const userService = require("../../services/users/userService");
 
 class UserController {
+    async getAllUsers(req, res) {
+        try {
+            const { User, Role, Permission } = require('../../models');
+            const users = await User.findAll({
+                attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'isActive', 'roleId'],
+                include: [
+                    { model: Role, as: 'role' },
+                    { model: Permission, as: 'directPermissions', through: { attributes: [] }, where: { isActive: true }, required: false }
+                ],
+                order: [['createdAt', 'DESC']]
+            });
+            return res.status(200).json({ success: true, data: users });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    
+    async updateUser(req, res) {
+        try {
+            const { id } = req.params;
+            const { username, email, password, firstName, lastName, phone, roleId } = req.body;
+            const { User, Role } = require('../../models');
+            const user = await User.findByPk(id);
+            if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+            
+            const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null };
+            if (password) {
+                const bcrypt = require('bcrypt');
+                updatePayload.password = await bcrypt.hash(password, 10);
+            }
+            
+            await user.update(updatePayload);
+            const updatedUser = await User.findByPk(user.id, { include: [{ model: Role, as: 'role' }] });
+            return res.status(200).json({ success: true, message: 'User updated successfully', data: updatedUser });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async createUser(req, res) {
+        try {
+            const { username, email, password, firstName, lastName, phone, roleId } = req.body;
+            const { User, Role } = require('../../models');
+            const bcrypt = require('bcrypt');
+            const hashedPassword = await bcrypt.hash(password, 10);
+            
+            const user = await User.create({
+                username, email, password: hashedPassword, firstName, lastName, phone, roleId: roleId || null
+            });
+            const newUser = await User.findByPk(user.id, { include: [{ model: Role, as: 'role' }] });
+            return res.status(201).json({ success: true, data: newUser });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
     async getProfile(req, res) {
         try {
             const userId = req.user.id;

@@ -26,6 +26,9 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
+  Snackbar,
+  Alert,
+  CircularProgress
 } from "@mui/material";
 import { Add, Edit, Delete, Security } from "@mui/icons-material";
 
@@ -41,17 +44,30 @@ export default function MenusPage() {
   const [defaultPerms, setDefaultPerms] = useState({ list: false, view: false, create: false, update: false, delete: false });
   const [customPerms, setCustomPerms] = useState([]);
   const [newCustomPermName, setNewCustomPermName] = useState("");
+  
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
+  const showToast = (message, severity = "success") => setToast({ open: true, message, severity });
+  const handleCloseToast = () => setToast({ ...toast, open: false });
 
   const fetchMenus = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:5050/api/menus", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.success) setMenus(data.data);
+      if (data.success) {
+        setMenus(data.data);
+      } else {
+        showToast(data.message || "Failed to fetch menus", "error");
+      }
     } catch (error) {
       console.error("Failed to fetch menus", error);
+      showToast("Network error fetching menus", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,28 +138,42 @@ export default function MenusPage() {
       const payload = { ...formData, permissions: permissionsToSave };
       if (payload.parent_id === "") payload.parent_id = null;
 
-      await fetch(url, {
+      const data = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-      });
-      setOpenUserModal(false);
-      fetchMenus();
+      }).then(res => res.json());
+      
+      if (data.success) {
+        showToast("Menu saved successfully!");
+        setOpenUserModal(false);
+        fetchMenus();
+      } else {
+        showToast(data.message || "Failed to save menu", "error");
+      }
     } catch (error) {
       console.error(error);
+      showToast("Network error saving menu", "error");
     }
   };
 
   const handleDeleteMenu = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5050/api/menus/${id}`, {
+      const data = await fetch(`http://localhost:5050/api/menus/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchMenus();
+      }).then(res => res.json());
+      
+      if (data.success) {
+        showToast("Menu deleted successfully!");
+        fetchMenus();
+      } else {
+        showToast(data.message || "Failed to delete menu", "error");
+      }
     } catch (error) {
       console.error(error);
+      showToast("Network error deleting menu", "error");
     }
   };
 
@@ -172,7 +202,12 @@ export default function MenusPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {menus.map((m) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center"><CircularProgress size={24} /></TableCell>
+              </TableRow>
+            ) : (
+              menus.map((m) => (
               <TableRow key={m.id} hover>
                 <TableCell>{m.name}</TableCell>
                 <TableCell>{m.slug}</TableCell>
@@ -187,8 +222,8 @@ export default function MenusPage() {
                   <IconButton color="error" onClick={() => handleDeleteMenu(m.id)}><Delete /></IconButton>
                 </TableCell>
               </TableRow>
-            ))}
-            {menus.length === 0 && (
+            )))}
+            {!loading && menus.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} align="center">No menus found.</TableCell>
               </TableRow>
@@ -247,6 +282,12 @@ export default function MenusPage() {
           <Button onClick={handleSaveMenu} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
+      
+      <Snackbar open={toast.open} autoHideDuration={4000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

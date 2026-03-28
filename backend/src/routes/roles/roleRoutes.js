@@ -7,6 +7,7 @@ router.use(protect);
 
 router.get('/', roleController.getRoles);
 router.post('/', roleController.createRole);
+router.put('/:id', roleController.updateRole);
 router.post('/:id/permissions', roleController.assignPermissionsToRole);
 
 module.exports = router;

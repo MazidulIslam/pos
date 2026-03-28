@@ -4,9 +4,11 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, IconButton, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress
+  DialogContent, DialogTitle, FormControl, InputLabel, Select, MenuItem,
+  Accordion, AccordionSummary, AccordionDetails, FormGroup, FormControlLabel, Checkbox, Chip, TextField,
+  Snackbar, Alert, CircularProgress
 } from "@mui/material";
-import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
+import { Edit, Security, ExpandMore, Add } from "@mui/icons-material";
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
   const getAllPermIds = (node) => {
@@ -106,15 +108,17 @@ const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }
   );
 };
 
-export default function RolesPage() {
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [menus, setMenus] = useState([]);
   
-  const [openRoleModal, setOpenRoleModal] = useState(false);
   const [openPermModal, setOpenPermModal] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [openUserModal, setOpenUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [selectedPerms, setSelectedPerms] = useState({});
 
   const [loading, setLoading] = useState(true);
@@ -123,15 +127,29 @@ export default function RolesPage() {
   const handleCloseToast = () => setToast({ ...toast, open: false });
 
   useEffect(() => {
-    Promise.all([fetchRoles(), fetchMenus()]).finally(() => setLoading(false));
+    Promise.all([fetchUsers(), fetchRoles(), fetchMenus()]).finally(() => setLoading(false));
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5050/api/users", { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) {
+        setUsers(data.data);
+      } else {
+        showToast(data.message || "Failed to fetch users", "error");
+      }
+    } catch (err) { 
+        console.error(err); 
+        showToast("Network error fetching users", "error");
+    }
+  };
 
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/roles", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch("http://localhost:5050/api/roles", { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) {
         setRoles(data.data);
@@ -147,9 +165,7 @@ export default function RolesPage() {
   const fetchMenus = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/menus", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch("http://localhost:5050/api/menus", { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.success) {
         const map = {};
@@ -172,46 +188,30 @@ export default function RolesPage() {
     }
   };
 
-  const handleOpenRoleModal = (role = null) => {
-    if (role) {
-      setFormData({ name: role.name, description: role.description || "" });
-      setSelectedRole(role);
+  const handleOpenUserModal = (user = null) => {
+    if (user) {
+      setFormData({
+        username: user.username || "",
+        email: user.email || "",
+        password: "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        phone: user.phone || "",
+        roleId: user.roleId || ""
+      });
+      setSelectedUser(user);
     } else {
-      setFormData({ name: "", description: "" });
-      setSelectedRole(null);
+      setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+      setSelectedUser(null);
     }
-    setOpenRoleModal(true);
+    setOpenUserModal(true);
   };
 
-  const handleSaveRole = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const url = selectedRole ? `http://localhost:5050/api/roles/${selectedRole.id}` : "http://localhost:5050/api/roles";
-      const method = selectedRole ? "PUT" : "POST";
-      const data = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      }).then(res => res.json());
-      
-      if (data.success) {
-        showToast("Role saved successfully!");
-        setOpenRoleModal(false);
-        fetchRoles();
-      } else {
-        showToast(data.message || "Failed to save role", "error");
-      }
-    } catch (error) { 
-        console.error(error); 
-        showToast("Network error saving role", "error");
-    }
-  };
-
-  const handleOpenPermModal = (role) => {
-    setSelectedRole(role);
+  const handleOpenPermModal = (user) => {
+    setSelectedUser(user);
     const dict = {};
-    if (role.permissions) {
-      role.permissions.forEach(p => { dict[p.id] = true; });
+    if (user.directPermissions) {
+      user.directPermissions.forEach(p => { dict[p.id] = true; });
     }
     setSelectedPerms(dict);
     setOpenPermModal(true);
@@ -256,31 +256,62 @@ export default function RolesPage() {
     try {
       const permissionIds = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
       const token = localStorage.getItem("token");
-      const data = await fetch(`http://localhost:5050/api/roles/${selectedRole.id}/permissions`, {
+      const data = await fetch(`http://localhost:5050/api/users/${selectedUser.id}/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ permissionIds }),
       }).then(res => res.json());
 
       if (data.success) {
-        showToast("Permissions assigned successfully!");
+        showToast("Direct permissions assigned!");
         setOpenPermModal(false);
-        fetchRoles();
+        fetchUsers();
       } else {
-        showToast(data.message || "Failed to assign permissions", "error");
+        showToast(data.message || "Failed to save permissions", "error");
       }
     } catch (error) { 
         console.error(error); 
-        showToast("Network error capturing permissions", "error");
+        showToast("Network error recording permissions", "error");
+    }
+  };
+
+  const handleSaveUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = selectedUser ? `http://localhost:5050/api/users/${selectedUser.id}` : `http://localhost:5050/api/users`;
+      const method = selectedUser ? "PUT" : "POST";
+      
+      const payload = { ...formData };
+      if (selectedUser && !payload.password) {
+        delete payload.password;
+      }
+
+      const data = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      }).then(res => res.json());
+
+      if (data.success) {
+        showToast(`User successfully ${selectedUser ? "updated" : "created"}!`);
+        setOpenUserModal(false);
+        setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+        fetchUsers();
+      } else {
+        showToast(data.message || "Failed to save user", "error");
+      }
+    } catch (error) { 
+        console.error(error); 
+        showToast("Network error saving user", "error");
     }
   };
 
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4" fontWeight="bold">Roles Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenRoleModal()}>
-          Add Role
+        <Typography variant="h4" fontWeight="bold">Users Management</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()}>
+          Add User
         </Button>
       </Box>
 
@@ -288,60 +319,55 @@ export default function RolesPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell><strong>Role Name</strong></TableCell>
-              <TableCell><strong>Description</strong></TableCell>
-              <TableCell><strong>Permissions Count</strong></TableCell>
+              <TableCell><strong>Name</strong></TableCell>
+              <TableCell><strong>Email</strong></TableCell>
+              <TableCell><strong>Phone</strong></TableCell>
+              <TableCell><strong>Assigned Role</strong></TableCell>
+              <TableCell><strong>Direct Permissions</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} align="center"><CircularProgress size={24} /></TableCell>
+                <TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell>
               </TableRow>
             ) : (
-              roles.map((r) => (
-              <TableRow key={r.id} hover>
-                <TableCell>{r.name}</TableCell>
-                <TableCell>{r.description}</TableCell>
-                <TableCell>{r.permissions?.length || 0} Permissions</TableCell>
+              users.map((u) => (
+              <TableRow key={u.id} hover>
+                <TableCell>{u.firstName} {u.lastName}</TableCell>
+                <TableCell>{u.email}</TableCell>
+                <TableCell>{u.phone}</TableCell>
                 <TableCell>
-                  <IconButton sx={{ color: 'warning.main', mr: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(r)} title="Assign Permissions"><Security /></IconButton>
-                  <IconButton color="primary" onClick={() => handleOpenRoleModal(r)}><Edit /></IconButton>
+                  {u.role ? <Chip label={u.role.name} color={u.role.name === 'Super Admin' ? 'error' : 'primary'} size="small" /> : <Typography variant="body2" color="textSecondary">None</Typography>}
+                </TableCell>
+                <TableCell>{u.directPermissions?.length || 0} Custom Overrides</TableCell>
+                <TableCell>
+                  <IconButton color="primary" onClick={() => handleOpenUserModal(u)} title="Edit User"><Edit /></IconButton>
+                  <IconButton sx={{ color: 'warning.main', ml: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(u)} title="Assign Direct Permissions"><Security /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
-            {!loading && roles.length === 0 && (
+            {!loading && users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} align="center">No roles found.</TableCell>
+                <TableCell colSpan={6} align="center">No users found.</TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Role Form */}
-      <Dialog open={openRoleModal} onClose={() => setOpenRoleModal(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{selectedRole ? "Edit Role" : "Add Role"}</DialogTitle>
-        <DialogContent>
-          <TextField margin="dense" label="Role Name" fullWidth value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-          <TextField margin="dense" label="Description" fullWidth value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenRoleModal(false)}>Cancel</Button>
-          <Button onClick={handleSaveRole} variant="contained">Save</Button>
-        </DialogActions>
-      </Dialog>
+
 
       {/* Permissions Binding Form */}
       <Dialog open={openPermModal} onClose={() => setOpenPermModal(false)} fullWidth maxWidth="md">
-        <DialogTitle>Assign Permissions: {selectedRole?.name}</DialogTitle>
+        <DialogTitle>Assign Explicit Direct Permissions: {selectedUser?.firstName}</DialogTitle>
         <DialogContent dividers>
           <Box mb={3} p={2} sx={{ bgcolor: 'action.hover', borderRadius: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', border: '1px solid', borderColor: 'divider' }}>
             <Box>
-              <Typography variant="subtitle1" fontWeight="bold">Global Assigner</Typography>
+              <Typography variant="subtitle1" fontWeight="bold">Global Direct Permissions</Typography>
               <Typography variant="body2" color="text.secondary">
-                {isMasterAllChecked ? "Currently granting all system permissions." : "Instantly grant or revoke all system permissions."}
+                {isMasterAllChecked ? "Currently overriding all system permissions." : "Instantly assign or revoke all system permissions for this User."}
               </Typography>
             </Box>
             <FormControlLabel
@@ -357,6 +383,9 @@ export default function RolesPage() {
               label={<Typography fontWeight="bold" color="warning.main">Toggle All Modules</Typography>}
             />
           </Box>
+          <Typography variant="body2" color="textSecondary" mb={2} sx={{ fontStyle: 'italic', pl: 1 }}>
+            Direct permissions override or supplement the User's Role permissions.
+          </Typography>
           {menus.map((menu) => (
             <MenuNode 
               key={menu.id} 
@@ -370,6 +399,36 @@ export default function RolesPage() {
         <DialogActions>
           <Button onClick={() => setOpenPermModal(false)}>Cancel</Button>
           <Button onClick={handleSavePermissions} variant="contained">Save Assignments</Button>
+        </DialogActions>
+      </Dialog>
+      {/* User Creation Form */}
+      <Dialog open={openUserModal} onClose={() => setOpenUserModal(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{selectedUser ? "Edit User" : "Add New User"}</DialogTitle>
+        <DialogContent>
+          <TextField margin="dense" label="First Name" fullWidth value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+          <TextField margin="dense" label="Last Name" fullWidth value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+          <TextField margin="dense" label="Username" fullWidth value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+          <TextField margin="dense" label="Email" type="email" fullWidth value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+          <TextField margin="dense" label="Password" type="password" fullWidth value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+          <TextField margin="dense" label="Phone" fullWidth value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
+            <InputLabel id="new-user-role-label">User Role (Optional)</InputLabel>
+            <Select
+              labelId="new-user-role-label"
+              value={formData.roleId}
+              label="User Role (Optional)"
+              onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+            >
+              <MenuItem value=""><em>None</em></MenuItem>
+              {roles.map(r => (
+                <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenUserModal(false)}>Cancel</Button>
+          <Button onClick={handleSaveUser} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
       
