@@ -122,10 +122,37 @@ const loginUser = async (email, password) => {
             order: [['sortOrder', 'ASC']] 
         });
 
-        allMenus = activeMenus.filter(menu => {
-            if (!menu.permissions || menu.permissions.length === 0) return true;
-            return menu.permissions.some(p => mergedPermissions.includes(p.action));
+        const explicitlyAllowed = new Set();
+        activeMenus.forEach(menu => {
+            if (!menu.permissions || menu.permissions.length === 0) {
+                explicitlyAllowed.add(menu.id);
+            } else if (menu.permissions.some(p => mergedPermissions.includes(p.action))) {
+                explicitlyAllowed.add(menu.id);
+            }
         });
+
+        // Bottom-up inheritance: Grant Parent menus if a child is allowed.
+        let addedParent = true;
+        while (addedParent) {
+            addedParent = false;
+            activeMenus.forEach(menu => {
+                 if (explicitlyAllowed.has(menu.id) && menu.parent_id && !explicitlyAllowed.has(menu.parent_id)) {
+                     explicitlyAllowed.add(menu.parent_id);
+                     addedParent = true;
+                     
+                     // Inherit parent's .list permission so frontend routing guards allow access
+                     const parentMenu = activeMenus.find(m => m.id === menu.parent_id);
+                     if (parentMenu && parentMenu.permissions) {
+                         const parentListPerm = parentMenu.permissions.find(p => p.action.endsWith('.list'));
+                         if (parentListPerm && !mergedPermissions.includes(parentListPerm.action)) {
+                             mergedPermissions.push(parentListPerm.action);
+                         }
+                     }
+                 }
+            });
+        }
+
+        allMenus = activeMenus.filter(menu => explicitlyAllowed.has(menu.id));
     }
 
     return { user: userWithoutPassword, token, permissions: mergedPermissions, menus: allMenus };

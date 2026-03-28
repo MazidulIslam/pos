@@ -16,80 +16,15 @@ import {
   Divider,
   Collapse,
 } from "@mui/material";
-import {
-  LayoutDashboard,
-  Package,
-  Users,
-  ShoppingCart,
-  BarChart3,
-  Settings,
-  LogOut,
-  ChevronRight,
-  ChevronDown,
-  FolderTree,
-  UserRound,
-  ReceiptText,
-  PackagePlus,
-  Tags,
-  SlidersHorizontal,
-  FileBarChart,
-} from "lucide-react";
+import { LogOut, ChevronRight, ChevronDown } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
+import { availableIcons } from "../../utils/iconMap";
 
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
 
-const menuItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-  {
-    label: "Products",
-    icon: Package,
-    href: "/products",
-    children: [
-      { label: "All Products", href: "/products", icon: FolderTree },
-      { label: "Categories", href: "/products/categories", icon: Tags },
-      { label: "Add Product", href: "/products/create", icon: PackagePlus },
-    ],
-  },
-  {
-    label: "Customers",
-    icon: Users,
-    href: "/customers",
-    children: [
-      { label: "Customer List", href: "/customers", icon: UserRound },
-      { label: "Groups", href: "/customers/groups", icon: FolderTree },
-    ],
-  },
-  {
-    label: "Sales",
-    icon: ShoppingCart,
-    href: "/sales",
-    children: [
-      { label: "Orders", href: "/sales", icon: ReceiptText },
-      { label: "Invoices", href: "/sales/invoices", icon: FileBarChart },
-    ],
-  },
-  {
-    label: "Reports",
-    icon: BarChart3,
-    href: "/reports",
-    children: [
-      { label: "Sales Report", href: "/reports/sales", icon: FileBarChart },
-      { label: "Inventory", href: "/reports/inventory", icon: FileBarChart },
-    ],
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-    children: [
-      { label: "General", href: "/settings", icon: SlidersHorizontal },
-      { label: "Users & Roles", href: "/settings/users", icon: Users },
-    ],
-  },
-];
-
 const isPathActive = (pathname, href) => {
+  if (!href) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 };
@@ -104,17 +39,44 @@ export const Sidebar = () => {
   } = useSidebar();
   const isExpanded = isDesktopExpanded || isMobileOpen;
 
-  const initialOpenMenus = useMemo(() => {
-    return menuItems.reduce((acc, item) => {
-      if (item.children?.some((child) => isPathActive(pathname, child.href))) {
-        acc[item.label] = true;
-      }
-      return acc;
-    }, {});
-  }, [pathname]);
-
-  const [openMenus, setOpenMenus] = useState(initialOpenMenus);
+  const [menuItems, setMenuItems] = useState([]);
+  const [openMenus, setOpenMenus] = useState({});
   const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("menus");
+      if (stored) {
+        const flatMenus = JSON.parse(stored);
+        
+        const map = {};
+        const roots = [];
+        
+        flatMenus.forEach(menu => {
+          map[menu.id] = {
+            label: menu.name,
+            icon: availableIcons[menu.icon] || availableIcons["Folder"],
+            href: menu.path,
+            id: menu.id,
+            parent_id: menu.parent_id,
+            children: []
+          };
+        });
+
+        flatMenus.forEach(menu => {
+          if (menu.parent_id && map[menu.parent_id]) {
+            map[menu.parent_id].children.push(map[menu.id]);
+          } else {
+            roots.push(map[menu.id]);
+          }
+        });
+
+        setMenuItems(roots);
+      }
+    } catch (e) {
+      console.error("Failed to parse menus from local storage", e);
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -148,7 +110,7 @@ export const Sidebar = () => {
       });
       return next;
     });
-  }, [pathname]);
+  }, [pathname, menuItems]);
 
   const toggleMenu = (label) => {
     if (!isExpanded) return;
@@ -283,7 +245,7 @@ export const Sidebar = () => {
                     transition: "margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   }}
                 >
-                  <item.icon size={20} />
+                  <item.icon sx={{ fontSize: 20 }} />
                 </ListItemIcon>
 
                 <ListItemText
@@ -401,7 +363,7 @@ export const Sidebar = () => {
                                     : "text.disabled",
                                 }}
                               >
-                                <child.icon size={16} />
+                                <child.icon sx={{ fontSize: 16 }} />
                               </ListItemIcon>
 
                               <ListItemText

@@ -26,6 +26,29 @@ class UserController {
             const user = await User.findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
             
+            // Prevent Super Admins from accidentally demoting themselves out of existence
+            if (roleId && roleId !== user.roleId) {
+                // Check if they are Demoting from Super Admin
+                if (user.roleId) {
+                    const currentRole = await Role.findByPk(user.roleId);
+                    if (currentRole && currentRole.name === 'Super Admin') {
+                        // Are they trying to change their OWN role?
+                        if (user.id === req.user.id) {
+                            return res.status(403).json({ success: false, message: 'Self-Demotion Blocked: You cannot remove your own Super Admin access to prevent accidental lockouts.' });
+                        }
+                    }
+                }
+
+                // Check if they are Assigning Super Admin
+                const targetRole = await Role.findByPk(roleId);
+                if (targetRole && targetRole.name === 'Super Admin') {
+                    const requestingUser = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
+                    if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                        return res.status(403).json({ success: false, message: 'Privilege Escalation Blocked: Only existing Super Admins can assign the Super Admin role.' });
+                    }
+                }
+            }
+
             const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null };
             if (password) {
                 const bcrypt = require('bcrypt');
@@ -44,6 +67,18 @@ class UserController {
         try {
             const { username, email, password, firstName, lastName, phone, roleId } = req.body;
             const { User, Role } = require('../../models');
+            
+            // Protect Super Admin assignment
+            if (roleId) {
+                const targetRole = await Role.findByPk(roleId);
+                if (targetRole && targetRole.name === 'Super Admin') {
+                    const requestingUser = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
+                    if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                        return res.status(403).json({ success: false, message: 'Privilege Escalation Blocked: Only existing Super Admins can assign the Super Admin role.' });
+                    }
+                }
+            }
+
             const bcrypt = require('bcrypt');
             const hashedPassword = await bcrypt.hash(password, 10);
             
@@ -126,8 +161,41 @@ class UserController {
             const user = await User.findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-            if (Array.isArray(permissionIds)) {
-                await user.setDirectPermissions(permissionIds);
+            const requestingUser = await User.findByPk(req.user.id, {
+                include: [
+                    { model: Role, as: 'role', include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] },
+                    { model: Permission, as: 'directPermissions', through: { attributes: [] } }
+                ]
+            });
+
+            let safePermissionIds = permissionIds;
+
+            if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                const rolePerms = requestingUser.role && requestingUser.role.permissions ? requestingUser.role.permissions.map(p => p.action) : [];
+                const directPerms = requestingUser.directPermissions ? requestingUser.directPermissions.map(p => p.action) : [];
+                const mergedPermissions = new Set([...rolePerms, ...directPerms]);
+
+                const requestedPermRows = await Permission.findAll({ where: { id: permissionIds } });
+                
+                // 1. Only allow assigning permissions that the requesting user actually owns
+                const safeSubmittedIds = requestedPermRows
+                    .filter(p => mergedPermissions.has(p.action))
+                    .map(p => p.id);
+
+                // 2. Fetch the target User's current direct permissions
+                const currentUserPerms = await user.getDirectPermissions();
+
+                // 3. Keep existing permissions that the requesting Admin does NOT own
+                const untouchableIds = currentUserPerms
+                    .filter(p => !mergedPermissions.has(p.action))
+                    .map(p => p.id);
+
+                // 4. Merge them securely
+                safePermissionIds = [...new Set([...safeSubmittedIds, ...untouchableIds])];
+            }
+
+            if (Array.isArray(safePermissionIds)) {
+                await user.setDirectPermissions(safePermissionIds);
             }
 
             const updatedUser = await User.findByPk(id, { include: [{ model: Permission, as: 'directPermissions' }] });

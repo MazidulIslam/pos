@@ -45,7 +45,7 @@ export default function MenusPage() {
   const [formData, setFormData] = useState({ name: "", slug: "", path: "", icon: "", sortOrder: 0, parent_id: "" });
   
   // New Menu Permissions states UI
-  const [defaultPerms, setDefaultPerms] = useState({ list: false, view: false, create: false, update: false, delete: false });
+  const [defaultPerms, setDefaultPerms] = useState({ list: true, view: false, create: false, update: false, delete: false });
   const [customPerms, setCustomPerms] = useState([]);
   const [newCustomPermName, setNewCustomPermName] = useState("");
   
@@ -86,7 +86,7 @@ export default function MenusPage() {
       
       const perms = menu.permissions || [];
       setDefaultPerms({
-        list: perms.some(p => p.isDefault && p.action.endsWith('.list')),
+        list: true, // Always enforce list permission
         view: perms.some(p => p.isDefault && p.action.endsWith('.view')),
         create: perms.some(p => p.isDefault && p.action.endsWith('.create')),
         update: perms.some(p => p.isDefault && p.action.endsWith('.update')),
@@ -98,7 +98,7 @@ export default function MenusPage() {
     } else {
       setFormData({ name: "", slug: "", path: "", icon: "", sortOrder: 0, parent_id: "" });
       setSelectedMenu(null);
-      setDefaultPerms({ list: false, view: false, create: false, update: false, delete: false });
+      setDefaultPerms({ list: true, view: false, create: false, update: false, delete: false });
       setCustomPerms([]);
     }
     setNewCustomPermName("");
@@ -284,7 +284,7 @@ export default function MenusPage() {
           
               <Typography variant="subtitle1" mt={2} fontWeight="bold">Select Default Permissions</Typography>
               <FormGroup row>
-                <FormControlLabel control={<Checkbox checked={defaultPerms.list} onChange={(e) => setDefaultPerms({...defaultPerms, list: e.target.checked})} />} label="List" />
+                <FormControlLabel control={<Checkbox checked={defaultPerms.list} disabled />} label="List (Mandatory)" />
                 <FormControlLabel control={<Checkbox checked={defaultPerms.view} onChange={(e) => setDefaultPerms({...defaultPerms, view: e.target.checked})} />} label="View" />
                 <FormControlLabel control={<Checkbox checked={defaultPerms.create} onChange={(e) => setDefaultPerms({...defaultPerms, create: e.target.checked})} />} label="Create" />
                 <FormControlLabel control={<Checkbox checked={defaultPerms.update} onChange={(e) => setDefaultPerms({...defaultPerms, update: e.target.checked})} />} label="Update" />

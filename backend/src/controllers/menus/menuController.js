@@ -2,12 +2,64 @@ const { Menu, Permission } = require('../../models');
 
 exports.getMenus = async (req, res) => {
     try {
+        const { User, Role } = require('../../models');
+        
         const menus = await Menu.findAll({
             where: { isActive: true },
             include: [{ model: Permission, as: 'permissions', where: { isActive: true }, required: false }],
             order: [['sortOrder', 'ASC']]
         });
-        return res.status(200).json({ success: true, data: menus });
+
+        const fullUser = await User.findByPk(req.user.id, {
+            include: [
+                { model: Role, as: 'role', include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] },
+                { model: Permission, as: 'directPermissions', through: { attributes: [] } }
+            ]
+        });
+
+        if (fullUser.role && fullUser.role.name === 'Super Admin') {
+            return res.status(200).json({ success: true, data: menus });
+        }
+
+        const rolePerms = fullUser.role && fullUser.role.permissions ? fullUser.role.permissions.map(p => p.action) : [];
+        const directPerms = fullUser.directPermissions ? fullUser.directPermissions.map(p => p.action) : [];
+        const mergedPermissions = [...new Set([...rolePerms, ...directPerms])];
+
+        const explicitlyAllowed = new Set();
+        
+        // Convert to deeply cloned JS objects to safely mutate arrays
+        const cleanMenus = menus.map(m => m.toJSON());
+
+        cleanMenus.forEach(menu => {
+            if (menu.permissions && menu.permissions.length > 0) {
+                // Strip permissions the current user does not own
+                menu.permissions = menu.permissions.filter(p => mergedPermissions.includes(p.action));
+                
+                // If it still has permissions left, keep it
+                if (menu.permissions.length > 0) {
+                    explicitlyAllowed.add(menu.id);
+                }
+            } else {
+                // Menus entirely without defined security tokens are kept by default (e.g. Dashboard)
+                explicitlyAllowed.add(menu.id);
+            }
+        });
+
+        // Bottom-up recursion: Add parents of any allowed child menus
+        let addedParent = true;
+        while (addedParent) {
+            addedParent = false;
+            cleanMenus.forEach(menu => {
+                 if (explicitlyAllowed.has(menu.id) && menu.parent_id && !explicitlyAllowed.has(menu.parent_id)) {
+                     explicitlyAllowed.add(menu.parent_id);
+                     addedParent = true;
+                 }
+            });
+        }
+
+        const filteredMenus = cleanMenus.filter(menu => explicitlyAllowed.has(menu.id));
+
+        return res.status(200).json({ success: true, data: filteredMenus });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

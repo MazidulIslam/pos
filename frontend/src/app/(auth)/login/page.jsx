@@ -77,6 +77,8 @@ export default function LoginPage() {
       // Store token (in a real app, use secure cookies or more robust state management)
       localStorage.setItem("token", data.data.token);
       localStorage.setItem("user", JSON.stringify(data.data.user));
+      localStorage.setItem("menus", JSON.stringify(data.data.menus));
+      localStorage.setItem("permissions", JSON.stringify(data.data.permissions));
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);
