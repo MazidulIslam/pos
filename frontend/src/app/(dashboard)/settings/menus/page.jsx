@@ -28,7 +28,8 @@ import {
   FormControl,
   Snackbar,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Autocomplete
 } from "@mui/material";
 import { Add, Edit, Delete, Security } from "@mui/icons-material";
 import { availableIcons } from "../../../../utils/iconMap";
@@ -120,6 +121,21 @@ export default function MenusPage() {
 
     setCustomPerms([...customPerms, { name: finalName, action: finalAction }]);
     setNewCustomPermName("");
+  };
+
+  const getMenuBreadcrumb = (menuId) => {
+    let current = menus.find(m => m.id === menuId);
+    if (!current) return "";
+    let path = current.name;
+    while (current?.parent_id) {
+      current = menus.find(m => m.id === current.parent_id);
+      if (current) {
+        path = `${current.name} > ${path}`;
+      } else {
+        break;
+      }
+    }
+    return path;
   };
 
   const handleSaveMenu = async () => {
@@ -254,20 +270,17 @@ export default function MenusPage() {
           
           <TextField margin="dense" label="Sort Order" type="number" fullWidth value={formData.sortOrder} onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })} />
           
-          <FormControl fullWidth margin="dense">
-            <InputLabel id="parent-menu-label">Parent Menu (Optional)</InputLabel>
-            <Select
-              labelId="parent-menu-label"
-              value={formData.parent_id || ""}
-              label="Parent Menu (Optional)"
-              onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-            >
-              <MenuItem value=""><em>None</em></MenuItem>
-              {menus.filter(m => selectedMenu ? m.id !== selectedMenu.id : true).map(m => (
-                <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            fullWidth
+            size="small"
+            sx={{ mt: 1, mb: 1 }}
+            options={menus.filter(m => selectedMenu ? m.id !== selectedMenu.id : true)}
+            getOptionLabel={(option) => getMenuBreadcrumb(option.id)}
+            value={menus.find(m => m.id === formData.parent_id) || null}
+            onChange={(e, newValue) => setFormData({ ...formData, parent_id: newValue ? newValue.id : "" })}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderInput={(params) => <TextField {...params} label="Parent Menu (Searchable)" margin="dense" />}
+          />
           
               <Typography variant="subtitle1" mt={2} fontWeight="bold">Select Default Permissions</Typography>
               <FormGroup row>
