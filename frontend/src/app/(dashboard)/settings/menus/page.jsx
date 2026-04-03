@@ -37,6 +37,7 @@ import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
+import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
 
 
 export default function MenusPage() {
@@ -59,6 +60,9 @@ export default function MenusPage() {
   const [defaultPerms, setDefaultPerms] = useState({ list: true, view: false, create: false, update: false, delete: false });
   const [customPerms, setCustomPerms] = useState([]);
   const [newCustomPermName, setNewCustomPermName] = useState("");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [menuToDelete, setMenuToDelete] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
@@ -195,6 +199,16 @@ export default function MenusPage() {
     }
   };
 
+  const handleDeleteMenuClick = (menu) => {
+    setMenuToDelete(menu);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!menuToDelete) return;
+    await handleDeleteMenu(menuToDelete.id);
+  };
+
 
 
   return (
@@ -239,7 +253,7 @@ export default function MenusPage() {
                 </TableCell>
                 <TableCell>
                   <IconButton color="primary" onClick={() => handleOpenUserModal(m)} disabled={!canUpdate}><Edit /></IconButton>
-                  <IconButton color="error" onClick={() => handleDeleteMenu(m.id)} disabled={!canDelete}><Delete /></IconButton>
+                  <IconButton color="error" onClick={() => handleDeleteMenuClick(m)} disabled={!canDelete}><Delete /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -334,6 +348,15 @@ export default function MenusPage() {
           {toast.message}
         </Alert>
       </Snackbar>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Menu"
+        message={`Are you sure you want to delete the menu "${menuToDelete?.name}"? This will also deactivate all its child menus and permissions.`}
+        confirmText="Confirm Delete"
+      />
     </Box>
   );
 }
