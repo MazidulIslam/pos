@@ -5,7 +5,7 @@ class UserController {
         try {
             const { User, Role, Permission } = require('../../models');
             const users = await User.findAll({
-                attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'isActive', 'roleId'],
+                attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'isUserActive', 'roleId'],
                 include: [
                     { 
                         model: Role, 
@@ -204,6 +204,40 @@ class UserController {
 
             const updatedUser = await User.findByPk(id, { include: [{ model: Permission, as: 'directPermissions' }] });
             return res.status(200).json({ success: true, message: 'Direct permissions assigned to User', data: updatedUser });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async toggleUserStatus(req, res) {
+        try {
+            const { id } = req.params;
+            const { User } = require('../../models');
+            const user = await User.findByPk(id);
+            if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+            
+            await user.update({ isUserActive: !user.isUserActive });
+            return res.status(200).json({ success: true, message: `User status changed to ${user.isUserActive ? 'Active' : 'Inactive'}`, data: user });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    async deleteUser(req, res) {
+        try {
+            const { id } = req.params;
+            const { User } = require('../../models');
+            const user = await User.findByPk(id);
+            if (!user) return res.status(404).json({ success: false, message: 'User not found or already deleted' });
+
+            // Prevent self-deletion
+            if (user.id === req.user.id) {
+                return res.status(403).json({ success: false, message: 'Security Block: You cannot delete your own account.' });
+            }
+
+            // Soft-delete: set isActive to false
+            await user.update({ isActive: false });
+            return res.status(200).json({ success: true, message: 'User successfully soft-deleted from the system.' });
         } catch (error) {
             return res.status(500).json({ success: false, message: error.message });
         }

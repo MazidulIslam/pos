@@ -13,6 +13,8 @@ router.put("/change-password", userController.changePassword);
 router.get("/", authorize("users.list"), userController.getAllUsers);
 router.post("/", authorize("users.create"), userController.createUser);
 router.put("/:id", authorize("users.update"), userController.updateUser);
+router.patch("/:id/status", authorize("users.update"), userController.toggleUserStatus);
+router.delete("/:id", authorize("users.delete"), userController.deleteUser);
 router.post("/:id/permissions", authorize("roles.update"), userController.assignPermissions);
 
 module.exports = router;

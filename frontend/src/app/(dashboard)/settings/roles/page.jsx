@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, IconButton, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress
+  DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress, Switch
 } from "@mui/material";
 import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
+import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -123,6 +124,7 @@ export default function RolesPage() {
   
   const [openRoleModal, setOpenRoleModal] = useState(false);
   const [openPermModal, setOpenPermModal] = useState(false);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   
   const [formData, setFormData] = useState({ name: "", description: "" });
@@ -270,6 +272,40 @@ export default function RolesPage() {
     }
   };
 
+  const handleToggleStatus = async (role) => {
+    try {
+      const data = await api.patch(`/roles/${role.id}/status`);
+      if (data.success) {
+        showToast(data.message);
+        fetchRoles();
+      } else {
+        showToast(data.message || "Failed to update status", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Network error updating status", "error");
+    }
+  };
+
+  const handleOpenDeleteConfirm = (role) => {
+    setSelectedRole(role);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleDeleteRole = async () => {
+    try {
+      const data = await api.delete(`/roles/${selectedRole.id}`);
+      if (data.success) {
+        showToast("Role successfully removed from the system.");
+        setOpenDeleteConfirm(false);
+        fetchRoles();
+      } else {
+        showToast(data.message || "Failed to delete role", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Network error deleting role", "error");
+    }
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
@@ -285,6 +321,7 @@ export default function RolesPage() {
             <TableRow>
               <TableCell><strong>Role Name</strong></TableCell>
               <TableCell><strong>Description</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Permissions Count</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
@@ -299,10 +336,25 @@ export default function RolesPage() {
               <TableRow key={r.id} hover>
                 <TableCell>{r.name}</TableCell>
                 <TableCell>{r.description}</TableCell>
+                <TableCell>
+                  <Box display="flex" alignItems="center">
+                    <Switch 
+                      size="small" 
+                      checked={!!r.isRoleActive} 
+                      onChange={() => handleToggleStatus(r)} 
+                      disabled={!canUpdate || r.name === 'Super Admin'} 
+                      color="success"
+                    />
+                    <Typography variant="caption" sx={{ color: r.isRoleActive ? 'success.main' : 'text.disabled', fontWeight: 'bold', ml: 0.5 }}>
+                      {r.isRoleActive ? 'ACTIVE' : 'INACTIVE'}
+                    </Typography>
+                  </Box>
+                </TableCell>
                 <TableCell>{r.permissions?.length || 0} Permissions</TableCell>
                 <TableCell>
                   <IconButton sx={{ color: 'warning.main', mr: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(r)} title="Assign Permissions" disabled={!canUpdate}><Security /></IconButton>
-                  <IconButton color="primary" onClick={() => handleOpenRoleModal(r)} disabled={!canUpdate}><Edit /></IconButton>
+                  <IconButton color="primary" onClick={() => handleOpenRoleModal(r)} disabled={!canUpdate} title="Edit Role"><Edit /></IconButton>
+                  <IconButton color="error" onClick={() => handleOpenDeleteConfirm(r)} disabled={!canDelete || r.name === 'Super Admin'} title="Delete Role"><Delete /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -368,6 +420,17 @@ export default function RolesPage() {
         </DialogActions>
       </Dialog>
       
+      {/* Delete Confirmation */}
+      <ConfirmDialog 
+        open={openDeleteConfirm} 
+        onClose={() => setOpenDeleteConfirm(false)} 
+        onConfirm={handleDeleteRole}
+        title="Permanently Remove Role?"
+        message={`This action will soft-delete the "${selectedRole?.name}" role from the system. This cannot be undone through the UI.`}
+        severity="error"
+        confirmText="Yes, Delete Role"
+      />
+
       <Snackbar open={toast.open} autoHideDuration={4000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: '100%' }}>
           {toast.message}

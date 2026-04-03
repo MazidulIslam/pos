@@ -21,7 +21,11 @@ module.exports = (sequelize, DataTypes) => {
       },
       isActive: {
         type: DataTypes.BOOLEAN,
-        defaultValue: true,
+        defaultValue: true, // Used for soft deletion (False = Deleted)
+      },
+      isRoleActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true, // Role operational status (Active/Inactive)
       },
       createdBy: {
         type: DataTypes.UUID,
@@ -43,7 +47,10 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "roles",
       timestamps: true,
-      // No defaultScope — use explicit where: { isActive: true } in queries
+      defaultScope: {
+        where: { isActive: true },
+      },
+      // Scopes for flexibility
       scopes: {
         active: { where: { isActive: true } },
         all: {},

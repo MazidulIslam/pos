@@ -6,13 +6,14 @@ import {
   TableHead, TableRow, Paper, IconButton, Dialog, DialogActions,
   DialogContent, DialogTitle, FormControl, InputLabel, Select, MenuItem,
   Accordion, AccordionSummary, AccordionDetails, FormGroup, FormControlLabel, Checkbox, Chip, TextField,
-  Snackbar, Alert, CircularProgress
+  Snackbar, Alert, CircularProgress, Switch
 } from "@mui/material";
-import { Edit, Security, ExpandMore, Add, Visibility } from "@mui/icons-material";
+import { Edit, Security, ExpandMore, Add, Visibility, Delete } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
+import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -127,6 +128,7 @@ export default function UsersPage() {
   const [openPermModal, setOpenPermModal] = useState(false);
   const [openUserModal, setOpenUserModal] = useState(false);
   const [openViewModal, setOpenViewModal] = useState(false);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   
   const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
@@ -276,6 +278,40 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleStatus = async (user) => {
+    try {
+      const data = await api.patch(`/users/${user.id}/status`);
+      if (data.success) {
+        showToast(data.message);
+        fetchUsers();
+      } else {
+        showToast(data.message || "Failed to update status", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Network error updating status", "error");
+    }
+  };
+
+  const handleOpenDeleteConfirm = (user) => {
+    setSelectedUser(user);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      const data = await api.delete(`/users/${selectedUser.id}`);
+      if (data.success) {
+        showToast("User successfully removed from the system.");
+        setOpenDeleteConfirm(false);
+        fetchUsers();
+      } else {
+        showToast(data.message || "Failed to delete user", "error");
+      }
+    } catch (err) {
+      showToast(err.message || "Network error deleting user", "error");
+    }
+  };
+
   const handleSaveUser = async () => {
     try {
       const endpoint = selectedUser ? `/users/${selectedUser.id}` : `/users`;
@@ -319,7 +355,8 @@ export default function UsersPage() {
               <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>Phone</strong></TableCell>
               <TableCell><strong>Assigned Role</strong></TableCell>
-              <TableCell><strong>Direct Permissions</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Permissions</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -337,11 +374,26 @@ export default function UsersPage() {
                 <TableCell>
                   {u.role ? <Chip label={u.role.name} color={u.role.name === 'Super Admin' ? 'error' : 'primary'} size="small" /> : <Typography variant="body2" color="textSecondary">None</Typography>}
                 </TableCell>
+                <TableCell>
+                   <Box display="flex" alignItems="center">
+                     <Switch 
+                       size="small" 
+                       checked={!!u.isUserActive} 
+                       onChange={() => handleToggleStatus(u)} 
+                       disabled={!canUpdate} 
+                       color="success"
+                     />
+                     <Typography variant="caption" sx={{ color: u.isUserActive ? 'success.main' : 'text.disabled', fontWeight: 'bold', ml: 0.5 }}>
+                       {u.isUserActive ? 'ACTIVE' : 'INACTIVE'}
+                     </Typography>
+                   </Box>
+                </TableCell>
                 <TableCell>{u.directPermissions?.length || 0} Custom Overrides</TableCell>
                 <TableCell>
                   <IconButton color="info" onClick={() => { setSelectedUser(u); setOpenViewModal(true); }} title="View All Permissions"><Visibility /></IconButton>
                   <IconButton color="primary" onClick={() => handleOpenUserModal(u)} title="Edit User" disabled={!canUpdate}><Edit /></IconButton>
                   <IconButton sx={{ color: 'warning.main', ml: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(u)} title="Assign Direct Permissions" disabled={!canUpdate}><Security /></IconButton>
+                  <IconButton color="error" onClick={() => handleOpenDeleteConfirm(u)} title="Delete User" disabled={!canDelete}><Delete /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -499,6 +551,17 @@ export default function UsersPage() {
           <Button onClick={() => setOpenViewModal(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog 
+        open={openDeleteConfirm} 
+        onClose={() => setOpenDeleteConfirm(false)} 
+        onConfirm={handleDeleteUser}
+        title="Permanently Remove User?"
+        message={`This action will soft-delete ${selectedUser?.username} from the system. They will no longer be able to log in, and their data will be hidden from all active lists.`}
+        severity="error"
+        confirmText="Yes, Delete User"
+      />
     </Box>
   );
 }

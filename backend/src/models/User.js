@@ -46,7 +46,11 @@ module.exports = (sequelize, DataTypes) => {
             },
             isActive: {
                 type: DataTypes.BOOLEAN,
-                defaultValue: true,
+                defaultValue: true, // Used for soft deletion (False = Deleted)
+            },
+            isUserActive: {
+                type: DataTypes.BOOLEAN,
+                defaultValue: true, // User account status (Active/Inactive)
             },
             roleId: {
                 type: DataTypes.UUID,
@@ -74,6 +78,7 @@ module.exports = (sequelize, DataTypes) => {
             timestamps: true,
             defaultScope: {
                 attributes: { exclude: ["password"] },
+                where: { isActive: true },
             },
             scopes: {
                 withPassword: {
