@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import config from "../../../config";
+import api from "../../../utils/api";
 
 
 const features = [
@@ -98,18 +99,7 @@ export default function RegisterPage() {
         password: formData.password,
       };
 
-      const res = await fetch(`${config.API_BASE_URL}/auth/register`, {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
+      await api.post("/auth/register", payload);
 
       // Registration success, redirect to login
       router.push("/login");

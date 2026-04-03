@@ -9,6 +9,7 @@ import {
 import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
+import api from "../../../../utils/api";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -133,17 +134,7 @@ export default function RolesPage() {
 
   const fetchRoles = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/roles`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/roles");
       if (data.success) {
         setRoles(data.data);
       } else {
@@ -151,23 +142,13 @@ export default function RolesPage() {
       }
     } catch (err) { 
         console.error(err); 
-        showToast("Network error fetching roles", "error");
+        showToast(err.message || "Network error fetching roles", "error");
     }
   };
 
   const fetchMenus = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/menus`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/menus");
       if (data.success) {
         const map = {};
         const roots = [];
@@ -185,7 +166,7 @@ export default function RolesPage() {
       }
     } catch (err) { 
         console.error(err); 
-        showToast("Network error fetching menus", "error");
+        showToast(err.message || "Network error fetching menus", "error");
     }
   };
 
@@ -202,23 +183,11 @@ export default function RolesPage() {
 
   const handleSaveRole = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const url = selectedRole ? `${config.API_BASE_URL}/roles/${selectedRole.id}` : `${config.API_BASE_URL}/roles`;
-      const method = selectedRole ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
+      const endpoint = selectedRole ? `/roles/${selectedRole.id}` : `/roles`;
+      
+      const data = selectedRole 
+        ? await api.put(endpoint, formData)
+        : await api.post(endpoint, formData);
       
       if (data.success) {
         showToast("Role saved successfully!");
@@ -229,7 +198,7 @@ export default function RolesPage() {
       }
     } catch (error) { 
         console.error(error); 
-        showToast("Network error saving role", "error");
+        showToast(error.message || "Network error saving role", "error");
     }
   };
 
@@ -281,21 +250,7 @@ export default function RolesPage() {
   const handleSavePermissions = async () => {
     try {
       const permissionIds = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/roles/${selectedRole.id}/permissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ permissionIds }),
-      });
-
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
+      const data = await api.post(`/roles/${selectedRole.id}/permissions`, { permissionIds });
 
       if (data.success) {
         showToast("Permissions assigned successfully!");
@@ -306,7 +261,7 @@ export default function RolesPage() {
       }
     } catch (error) { 
         console.error(error); 
-        showToast("Network error capturing permissions", "error");
+        showToast(error.message || "Network error capturing permissions", "error");
     }
   };
 

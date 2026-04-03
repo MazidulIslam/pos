@@ -16,6 +16,7 @@ import {
 import { ShieldCheck } from "lucide-react";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
+import api from "../../../../utils/api";
 
 
 export default function AccountSettingsPage() {
@@ -42,32 +43,17 @@ export default function AccountSettingsPage() {
 
         setSaving(true);
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${config.API_BASE_URL}/users/change-password`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    currentPassword: formData.currentPassword,
-                    newPassword: formData.newPassword,
-                }),
+            const data = await api.put("/users/change-password", {
+                currentPassword: formData.currentPassword,
+                newPassword: formData.newPassword,
             });
             
-            if (res.status === 401) {
-                localStorage.removeItem("token");
-                router.push("/login");
-                return;
+            if (data.success) {
+                setSnackbar({ open: true, message: "Password updated successfully!", severity: "success" });
+                setFormData({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+            } else {
+                throw new Error(data.message || "Failed to update password");
             }
-            
-            const data = await res.json();
-
-
-            if (!res.ok) throw new Error(data.message);
-
-            setSnackbar({ open: true, message: "Password updated successfully!", severity: "success" });
-            setFormData({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
         } catch (error) {
             setSnackbar({ open: true, message: error.message, severity: "error" });
         } finally {

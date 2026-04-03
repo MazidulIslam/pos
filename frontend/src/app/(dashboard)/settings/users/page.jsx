@@ -11,6 +11,7 @@ import {
 import { Edit, Security, ExpandMore, Add } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
+import api from "../../../../utils/api";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -137,15 +138,7 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/users`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/users");
       if (data.success) {
         setUsers(data.data);
       } else {
@@ -153,21 +146,13 @@ export default function UsersPage() {
       }
     } catch (err) { 
         console.error(err); 
-        showToast("Network error fetching users", "error");
+        showToast(err.message || "Network error fetching users", "error");
     }
   };
 
   const fetchRoles = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/roles`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/roles");
       if (data.success) {
         setRoles(data.data);
       } else {
@@ -175,21 +160,13 @@ export default function UsersPage() {
       }
     } catch (err) { 
         console.error(err); 
-        showToast("Network error fetching roles", "error");
+        showToast(err.message || "Network error fetching roles", "error");
     }
   };
 
   const fetchMenus = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/menus`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/menus");
       if (data.success) {
         const map = {};
         const roots = [];
@@ -207,7 +184,7 @@ export default function UsersPage() {
       }
     } catch (err) { 
         console.error(err); 
-        showToast("Network error fetching menus", "error");
+        showToast(err.message || "Network error fetching menus", "error");
     }
   };
 
@@ -278,21 +255,7 @@ export default function UsersPage() {
   const handleSavePermissions = async () => {
     try {
       const permissionIds = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/users/${selectedUser.id}/permissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ permissionIds }),
-      });
-
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
+      const data = await api.post(`/users/${selectedUser.id}/permissions`, { permissionIds });
 
       if (data.success) {
         showToast("Direct permissions assigned!");
@@ -303,35 +266,21 @@ export default function UsersPage() {
       }
     } catch (error) { 
         console.error(error); 
-        showToast("Network error recording permissions", "error");
+        showToast(error.message || "Network error recording permissions", "error");
     }
   };
 
   const handleSaveUser = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const url = selectedUser ? `${config.API_BASE_URL}/users/${selectedUser.id}` : `${config.API_BASE_URL}/users`;
-      const method = selectedUser ? "PUT" : "POST";
-      
+      const endpoint = selectedUser ? `/users/${selectedUser.id}` : `/users`;
       const payload = { ...formData };
       if (selectedUser && !payload.password) {
         delete payload.password;
       }
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
+      const data = selectedUser 
+        ? await api.put(endpoint, payload)
+        : await api.post(endpoint, payload);
 
       if (data.success) {
         showToast(`User successfully ${selectedUser ? "updated" : "created"}!`);
@@ -343,7 +292,7 @@ export default function UsersPage() {
       }
     } catch (error) { 
         console.error(error); 
-        showToast("Network error saving user", "error");
+        showToast(error.message || "Network error saving user", "error");
     }
   };
 

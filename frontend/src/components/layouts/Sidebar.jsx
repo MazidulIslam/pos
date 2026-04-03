@@ -20,6 +20,7 @@ import { LogOut, ChevronRight, ChevronDown } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 import { availableIcons } from "../../utils/iconMap";
 import config from "../../config";
+import api from "../../utils/api";
 
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
@@ -81,15 +82,8 @@ export const Sidebar = () => {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch(`${config.API_BASE_URL}/auth/logout`, {
-
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      if (localStorage.getItem("token")) {
+        await api.post("/auth/logout");
       }
     } catch (error) {
       console.error("Failed to blacklist token on logout", error);

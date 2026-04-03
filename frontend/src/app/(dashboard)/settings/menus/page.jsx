@@ -35,6 +35,7 @@ import { Add, Edit, Delete, Security } from "@mui/icons-material";
 import { availableIcons } from "../../../../utils/iconMap";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
+import api from "../../../../utils/api";
 
 
 export default function MenusPage() {
@@ -62,17 +63,7 @@ export default function MenusPage() {
   const fetchMenus = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/menus`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      const data = await res.json();
-
+      const data = await api.get("/menus");
       if (data.success) {
         setMenus(data.data);
       } else {
@@ -80,7 +71,7 @@ export default function MenusPage() {
       }
     } catch (error) {
       console.error("Failed to fetch menus", error);
-      showToast("Network error fetching menus", "error");
+      showToast(error.message || "Network error fetching menus", "error");
     } finally {
       setLoading(false);
     }
@@ -151,9 +142,7 @@ export default function MenusPage() {
 
   const handleSaveMenu = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const url = selectedMenu ? `${config.API_BASE_URL}/menus/${selectedMenu.id}` : `${config.API_BASE_URL}/menus`;
-      const method = selectedMenu ? "PUT" : "POST";
+      const endpoint = selectedMenu ? `/menus/${selectedMenu.id}` : `/menus`;
       
       const permissionsToSave = [];
       const slug = formData.slug || "";
@@ -168,21 +157,10 @@ export default function MenusPage() {
       const payload = { ...formData, permissions: permissionsToSave };
       if (payload.parent_id === "") payload.parent_id = null;
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      });
+      const data = selectedMenu 
+        ? await api.put(endpoint, payload)
+        : await api.post(endpoint, payload);
 
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
-      
       if (data.success) {
         showToast("Menu saved successfully!");
         setOpenUserModal(false);
@@ -192,27 +170,14 @@ export default function MenusPage() {
       }
     } catch (error) {
       console.error(error);
-      showToast("Network error saving menu", "error");
+      showToast(error.message || "Network error saving menu", "error");
     }
   };
 
   const handleDeleteMenu = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${config.API_BASE_URL}/menus/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const data = await api.delete(`/menus/${id}`);
 
-      if (res.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-
-      const data = await res.json();
-
-      
       if (data.success) {
         showToast("Menu deleted successfully!");
         fetchMenus();
@@ -221,7 +186,7 @@ export default function MenusPage() {
       }
     } catch (error) {
       console.error(error);
-      showToast("Network error deleting menu", "error");
+      showToast(error.message || "Network error deleting menu", "error");
     }
   };
 

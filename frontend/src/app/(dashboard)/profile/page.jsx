@@ -17,6 +17,7 @@ import {
 import { Save, User as UserIcon } from "lucide-react";
 import config from "../../../config";
 import { useRouter } from "next/navigation";
+import api from "../../../utils/api";
 
 
 export default function ProfilePage() {
@@ -38,18 +39,7 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${config.API_BASE_URL}/users/profile`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            
-            if (res.status === 401) {
-                localStorage.removeItem("token");
-                router.push("/login");
-                return;
-            }
-            
-            const data = await res.json();
+            const data = await api.get("/users/profile");
 
             if (data.success) {
                 setFormData({
@@ -74,35 +64,19 @@ export default function ProfilePage() {
         e.preventDefault();
         setSaving(true);
         try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${config.API_BASE_URL}/users/profile`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    phone: formData.phone,
-                }),
+            const data = await api.put("/users/profile", {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                phone: formData.phone,
             });
             
-            if (res.status === 401) {
-                localStorage.removeItem("token");
-                router.push("/login");
-                return;
+            if (data.success) {
+                // Update local storage user just in case someone is relying on it
+                localStorage.setItem("user", JSON.stringify(data.data));
+                setSnackbar({ open: true, message: "Profile updated successfully!", severity: "success" });
+            } else {
+                throw new Error(data.message || "Failed to update profile");
             }
-            
-            const data = await res.json();
-
-
-            if (!res.ok) throw new Error(data.message);
-
-            // Update local storage user just in case someone is relying on it
-            localStorage.setItem("user", JSON.stringify(data.data));
-
-            setSnackbar({ open: true, message: "Profile updated successfully!", severity: "success" });
         } catch (error) {
             setSnackbar({ open: true, message: error.message, severity: "error" });
         } finally {

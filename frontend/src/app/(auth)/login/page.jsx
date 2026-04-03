@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
 import config from "../../../config";
+import api from "../../../utils/api";
 
 
 export default function LoginPage() {
@@ -63,19 +64,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      // In Docker composed environment, the frontend browser makes the request to the configured API URL
-      const res = await fetch(`${config.API_BASE_URL}/auth/login`, {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to login");
-      }
+      const data = await api.post("/auth/login", formData);
 
       // Store token (in a real app, use secure cookies or more robust state management)
       localStorage.setItem("token", data.data.token);

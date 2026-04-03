@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { CloudDownload, Security, Storage, Timer } from "@mui/icons-material";
 import config from "@/config";
+import api from "@/utils/api";
 
 
 export default function BackupsPage() {
@@ -43,26 +44,18 @@ export default function BackupsPage() {
     setSuccess(false);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${config.API_BASE_URL}/backups`, {
-
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.get("/backups", {
+        responseType: 'blob',
+        fullResponse: true
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to generate backup");
-      }
-
       // Handle the stream download
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       
       // Get filename from header or use default
-      const contentDisposition = response.headers.get('Content-Disposition');
+      const contentDisposition = response.headers['content-disposition'];
       let filename = 'pos_backup.sql';
       if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
           filename = contentDisposition.split('filename=')[1].replace(/"/g, '');

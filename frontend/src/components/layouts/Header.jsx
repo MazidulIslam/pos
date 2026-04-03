@@ -21,6 +21,7 @@ import { useSidebar } from "./SidebarContext";
 import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut } from "lucide-react";
 import { styled, alpha } from "@mui/material/styles";
 import config from "../../config";
+import api from "../../utils/api";
 
 
 const SearchContainer = styled("div")(({ theme }) => ({
@@ -104,15 +105,8 @@ export const Header = () => {
   const handleLogout = async () => {
     handleMenuClose();
     try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        await fetch(`${config.API_BASE_URL}/auth/logout`, {
-
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      if (localStorage.getItem("token")) {
+        await api.post("/auth/logout");
       }
     } catch (error) {
       console.error("Failed to blacklist token on logout", error);
