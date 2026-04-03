@@ -15,9 +15,14 @@ import {
     Alert,
 } from "@mui/material";
 import { Save, User as UserIcon } from "lucide-react";
+import config from "../../../config";
+import { useRouter } from "next/navigation";
+
 
 export default function ProfilePage() {
+    const router = useRouter();
     const [formData, setFormData] = useState({
+
         firstName: "",
         lastName: "",
         email: "",
@@ -34,10 +39,18 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5050/api/users/profile", {
+            const res = await fetch(`${config.API_BASE_URL}/users/profile`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            
+            if (res.status === 401) {
+                localStorage.removeItem("token");
+                router.push("/login");
+                return;
+            }
+            
             const data = await res.json();
+
             if (data.success) {
                 setFormData({
                     firstName: data.data.firstName || "",
@@ -62,7 +75,7 @@ export default function ProfilePage() {
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5050/api/users/profile", {
+            const res = await fetch(`${config.API_BASE_URL}/users/profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -74,7 +87,15 @@ export default function ProfilePage() {
                     phone: formData.phone,
                 }),
             });
+            
+            if (res.status === 401) {
+                localStorage.removeItem("token");
+                router.push("/login");
+                return;
+            }
+            
             const data = await res.json();
+
 
             if (!res.ok) throw new Error(data.message);
 

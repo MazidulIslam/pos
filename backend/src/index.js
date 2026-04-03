@@ -10,7 +10,14 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // Connect to Database
-connectDB();
+const seedBackups = require('./seeds/seed-backups');
+connectDB().then(async () => {
+    try {
+        await seedBackups();
+    } catch (error) {
+        console.error('Initial seeding failed:', error);
+    }
+});
 
 // Routes
 const authRoutes = require('./routes/auth/authRoutes');
@@ -20,6 +27,8 @@ const customerRoutes = require('./routes/customers/customerRoutes');
 const saleRoutes = require('./routes/sales/saleRoutes');
 const menuRoutes = require('./routes/menus/menuRoutes');
 const roleRoutes = require('./routes/roles/roleRoutes');
+const backupRoutes = require('./routes/backup/backupRoutes');
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -28,6 +37,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/menus', menuRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/backups', backupRoutes);
+
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Modern POS API is running' });

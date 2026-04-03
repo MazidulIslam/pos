@@ -19,6 +19,7 @@ import {
 import { LogOut, ChevronRight, ChevronDown } from "lucide-react";
 import { useSidebar } from "./SidebarContext";
 import { availableIcons } from "../../utils/iconMap";
+import config from "../../config";
 
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
@@ -82,7 +83,8 @@ export const Sidebar = () => {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-        await fetch("http://localhost:5050/api/auth/logout", {
+        await fetch(`${config.API_BASE_URL}/auth/logout`, {
+
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -510,4 +512,3 @@ export const Sidebar = () => {
     </Box>
   );
 };
-

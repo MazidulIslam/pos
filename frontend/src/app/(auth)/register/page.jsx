@@ -28,6 +28,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useState } from "react";
+import config from "../../../config";
+
 
 const features = [
   {
@@ -96,7 +98,8 @@ export default function RegisterPage() {
         password: formData.password,
       };
 
-      const res = await fetch("http://localhost:5050/api/auth/register", {
+      const res = await fetch(`${config.API_BASE_URL}/auth/register`, {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

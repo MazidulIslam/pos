@@ -20,6 +20,8 @@ import {
 import { useSidebar } from "./SidebarContext";
 import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut } from "lucide-react";
 import { styled, alpha } from "@mui/material/styles";
+import config from "../../config";
+
 
 const SearchContainer = styled("div")(({ theme }) => ({
   position: "relative",
@@ -104,7 +106,8 @@ export const Header = () => {
     try {
       const token = localStorage.getItem("token");
       if (token) {
-        await fetch("http://localhost:5050/api/auth/logout", {
+        await fetch(`${config.API_BASE_URL}/auth/logout`, {
+
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,

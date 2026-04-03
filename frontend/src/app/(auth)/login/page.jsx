@@ -20,6 +20,8 @@ import {
   Chip,
 } from "@mui/material";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
+import config from "../../../config";
+
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -61,8 +63,9 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      // In Docker composed environment, the frontend browser makes the request to localhost:5050
-      const res = await fetch("http://localhost:5050/api/auth/login", {
+      // In Docker composed environment, the frontend browser makes the request to the configured API URL
+      const res = await fetch(`${config.API_BASE_URL}/auth/login`, {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

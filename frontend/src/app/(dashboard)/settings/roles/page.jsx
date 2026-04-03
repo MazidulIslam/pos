@@ -7,6 +7,9 @@ import {
   DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress
 } from "@mui/material";
 import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
+import config from "../../../../config";
+import { useRouter } from "next/navigation";
+
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
   const getAllPermIds = (node) => {
@@ -107,7 +110,9 @@ const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }
 };
 
 export default function RolesPage() {
+  const router = useRouter();
   const [roles, setRoles] = useState([]);
+
   const [menus, setMenus] = useState([]);
   
   const [openRoleModal, setOpenRoleModal] = useState(false);
@@ -129,10 +134,16 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/roles", {
+      const res = await fetch(`${config.API_BASE_URL}/roles`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       const data = await res.json();
+
       if (data.success) {
         setRoles(data.data);
       } else {
@@ -147,10 +158,16 @@ export default function RolesPage() {
   const fetchMenus = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/menus", {
+      const res = await fetch(`${config.API_BASE_URL}/menus`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       const data = await res.json();
+
       if (data.success) {
         const map = {};
         const roots = [];
@@ -186,13 +203,22 @@ export default function RolesPage() {
   const handleSaveRole = async () => {
     try {
       const token = localStorage.getItem("token");
-      const url = selectedRole ? `http://localhost:5050/api/roles/${selectedRole.id}` : "http://localhost:5050/api/roles";
+      const url = selectedRole ? `${config.API_BASE_URL}/roles/${selectedRole.id}` : `${config.API_BASE_URL}/roles`;
       const method = selectedRole ? "PUT" : "POST";
-      const data = await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData),
-      }).then(res => res.json());
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
+
+      const data = await res.json();
+
       
       if (data.success) {
         showToast("Role saved successfully!");
@@ -256,11 +282,20 @@ export default function RolesPage() {
     try {
       const permissionIds = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
       const token = localStorage.getItem("token");
-      const data = await fetch(`http://localhost:5050/api/roles/${selectedRole.id}/permissions`, {
+      const res = await fetch(`${config.API_BASE_URL}/roles/${selectedRole.id}/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ permissionIds }),
-      }).then(res => res.json());
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
+
+      const data = await res.json();
+
 
       if (data.success) {
         showToast("Permissions assigned successfully!");

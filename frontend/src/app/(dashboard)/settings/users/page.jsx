@@ -9,6 +9,9 @@ import {
   Snackbar, Alert, CircularProgress
 } from "@mui/material";
 import { Edit, Security, ExpandMore, Add } from "@mui/icons-material";
+import config from "../../../../config";
+import { useRouter } from "next/navigation";
+
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
   const getAllPermIds = (node) => {
@@ -109,7 +112,9 @@ const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }
 };
 
 export default function UsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState([]);
+
   const [roles, setRoles] = useState([]);
   const [menus, setMenus] = useState([]);
   
@@ -133,8 +138,14 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/users", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${config.API_BASE_URL}/users`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       const data = await res.json();
+
       if (data.success) {
         setUsers(data.data);
       } else {
@@ -149,8 +160,14 @@ export default function UsersPage() {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/roles", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${config.API_BASE_URL}/roles`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       const data = await res.json();
+
       if (data.success) {
         setRoles(data.data);
       } else {
@@ -165,8 +182,14 @@ export default function UsersPage() {
   const fetchMenus = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5050/api/menus", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${config.API_BASE_URL}/menus`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
       const data = await res.json();
+
       if (data.success) {
         const map = {};
         const roots = [];
@@ -256,11 +279,20 @@ export default function UsersPage() {
     try {
       const permissionIds = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
       const token = localStorage.getItem("token");
-      const data = await fetch(`http://localhost:5050/api/users/${selectedUser.id}/permissions`, {
+      const res = await fetch(`${config.API_BASE_URL}/users/${selectedUser.id}/permissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ permissionIds }),
-      }).then(res => res.json());
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
+
+      const data = await res.json();
+
 
       if (data.success) {
         showToast("Direct permissions assigned!");
@@ -278,7 +310,7 @@ export default function UsersPage() {
   const handleSaveUser = async () => {
     try {
       const token = localStorage.getItem("token");
-      const url = selectedUser ? `http://localhost:5050/api/users/${selectedUser.id}` : `http://localhost:5050/api/users`;
+      const url = selectedUser ? `${config.API_BASE_URL}/users/${selectedUser.id}` : `${config.API_BASE_URL}/users`;
       const method = selectedUser ? "PUT" : "POST";
       
       const payload = { ...formData };
@@ -286,11 +318,20 @@ export default function UsersPage() {
         delete payload.password;
       }
 
-      const data = await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-      }).then(res => res.json());
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
+
+      const data = await res.json();
+
 
       if (data.success) {
         showToast(`User successfully ${selectedUser ? "updated" : "created"}!`);

@@ -14,9 +14,14 @@ import {
     Alert,
 } from "@mui/material";
 import { ShieldCheck } from "lucide-react";
+import config from "../../../../config";
+import { useRouter } from "next/navigation";
+
 
 export default function AccountSettingsPage() {
+    const router = useRouter();
     const [formData, setFormData] = useState({
+
         currentPassword: "",
         newPassword: "",
         confirmNewPassword: "",
@@ -38,7 +43,7 @@ export default function AccountSettingsPage() {
         setSaving(true);
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5050/api/users/change-password", {
+            const res = await fetch(`${config.API_BASE_URL}/users/change-password`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -49,7 +54,15 @@ export default function AccountSettingsPage() {
                     newPassword: formData.newPassword,
                 }),
             });
+            
+            if (res.status === 401) {
+                localStorage.removeItem("token");
+                router.push("/login");
+                return;
+            }
+            
             const data = await res.json();
+
 
             if (!res.ok) throw new Error(data.message);
 

@@ -157,7 +157,7 @@ class UserController {
             const { id } = req.params;
             const { permissionIds } = req.body;
             
-            const { User, Permission } = require('../../models');
+            const { User, Permission, Role } = require('../../models');
             const user = await User.findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
