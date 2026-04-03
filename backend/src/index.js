@@ -10,14 +10,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // Connect to Database
-const seedBackups = require('./seeds/seed-backups');
-connectDB().then(async () => {
-    try {
-        await seedBackups();
-    } catch (error) {
-        console.error('Initial seeding failed:', error);
-    }
-});
+connectDB();
 
 // Routes
 const authRoutes = require('./routes/auth/authRoutes');

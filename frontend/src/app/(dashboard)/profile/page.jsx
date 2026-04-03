@@ -14,16 +14,19 @@ import {
     Snackbar,
     Alert,
 } from "@mui/material";
-import { Save, User as UserIcon } from "lucide-react";
+import { Save, User as UserIcon, ShieldAlert } from "lucide-react";
 import config from "../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../utils/api";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 
 export default function ProfilePage() {
     const router = useRouter();
-    const [formData, setFormData] = useState({
+    const { hasPermission } = usePermissions();
+    const canUpdate = hasPermission("profile.update");
 
+    const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
@@ -99,6 +102,15 @@ export default function ProfilePage() {
 
             <Card sx={{ borderRadius: 4, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
                 <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+                    {!canUpdate && (
+                        <Alert 
+                            severity="info" 
+                            icon={<ShieldAlert size={20} />}
+                            sx={{ mb: 4, borderRadius: 2 }}
+                        >
+                            You are in read-only mode. You do not have permission to update your profile.
+                        </Alert>
+                    )}
                     <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 4 }}>
                         <Avatar
                             sx={{
@@ -134,6 +146,7 @@ export default function ProfilePage() {
                                     value={formData.firstName}
                                     onChange={handleChange}
                                     variant="outlined"
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -144,6 +157,7 @@ export default function ProfilePage() {
                                     value={formData.lastName}
                                     onChange={handleChange}
                                     variant="outlined"
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -166,27 +180,30 @@ export default function ProfilePage() {
                                     onChange={handleChange}
                                     placeholder="+1 (555) 000-0000"
                                     variant="outlined"
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                         </Grid>
 
-                        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                disabled={saving}
-                                startIcon={<Save size={18} />}
-                                sx={{
-                                    py: 1.25,
-                                    px: 3,
-                                    borderRadius: 2,
-                                    textTransform: "none",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </Button>
-                        </Box>
+                        {canUpdate && (
+                            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    disabled={saving}
+                                    startIcon={<Save size={18} />}
+                                    sx={{
+                                        py: 1.25,
+                                        px: 3,
+                                        borderRadius: 2,
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {saving ? "Saving..." : "Save Changes"}
+                                </Button>
+                            </Box>
+                        )}
                     </form>
                 </CardContent>
             </Card>

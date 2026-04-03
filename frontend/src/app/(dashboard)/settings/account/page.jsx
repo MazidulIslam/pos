@@ -17,10 +17,13 @@ import { ShieldCheck } from "lucide-react";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 export default function AccountSettingsPage() {
     const router = useRouter();
+    const { hasPermission } = usePermissions();
+    const canUpdate = hasPermission('account-settings.update');
     const [formData, setFormData] = useState({
 
         currentPassword: "",
@@ -109,6 +112,7 @@ export default function AccountSettingsPage() {
                                     onChange={handleChange}
                                     variant="outlined"
                                     required
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -121,6 +125,7 @@ export default function AccountSettingsPage() {
                                     onChange={handleChange}
                                     variant="outlined"
                                     required
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -133,6 +138,7 @@ export default function AccountSettingsPage() {
                                     onChange={handleChange}
                                     variant="outlined"
                                     required
+                                    disabled={!canUpdate}
                                 />
                             </Grid>
                         </Grid>
@@ -141,7 +147,7 @@ export default function AccountSettingsPage() {
                             <Button
                                 type="submit"
                                 variant="contained"
-                                disabled={saving}
+                                disabled={saving || !canUpdate}
                                 sx={{
                                     py: 1.25,
                                     px: 3,

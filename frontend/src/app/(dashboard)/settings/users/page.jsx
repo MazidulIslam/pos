@@ -12,6 +12,7 @@ import { Edit, Security, ExpandMore, Add } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -114,6 +115,10 @@ const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }
 
 export default function UsersPage() {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('users.create');
+  const canUpdate = hasPermission('users.update');
+  const canDelete = hasPermission('users.delete');
   const [users, setUsers] = useState([]);
 
   const [roles, setRoles] = useState([]);
@@ -300,7 +305,7 @@ export default function UsersPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h4" fontWeight="bold">Users Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()}>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()} disabled={!canCreate}>
           Add User
         </Button>
       </Box>
@@ -333,8 +338,8 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell>{u.directPermissions?.length || 0} Custom Overrides</TableCell>
                 <TableCell>
-                  <IconButton color="primary" onClick={() => handleOpenUserModal(u)} title="Edit User"><Edit /></IconButton>
-                  <IconButton sx={{ color: 'warning.main', ml: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(u)} title="Assign Direct Permissions"><Security /></IconButton>
+                  <IconButton color="primary" onClick={() => handleOpenUserModal(u)} title="Edit User" disabled={!canUpdate}><Edit /></IconButton>
+                  <IconButton sx={{ color: 'warning.main', ml: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(u)} title="Assign Direct Permissions" disabled={!canUpdate}><Security /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -388,7 +393,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenPermModal(false)}>Cancel</Button>
-          <Button onClick={handleSavePermissions} variant="contained">Save Assignments</Button>
+          <Button onClick={handleSavePermissions} variant="contained" disabled={!canUpdate}>Save Assignments</Button>
         </DialogActions>
       </Dialog>
       {/* User Creation Form */}
@@ -418,7 +423,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenUserModal(false)}>Cancel</Button>
-          <Button onClick={handleSaveUser} variant="contained">Save</Button>
+          <Button onClick={handleSaveUser} variant="contained" disabled={selectedUser ? !canUpdate : !canCreate}>Save</Button>
         </DialogActions>
       </Dialog>
       

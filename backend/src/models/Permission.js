@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             action: {
                 type: DataTypes.STRING,
                 allowNull: false,
-                unique: true, // Typically action strings like "product.create" must be unique application-wide
+                // No simple unique:true — partial unique index handles this at DB level
             },
             isDefault: {
                 type: DataTypes.BOOLEAN,
@@ -49,6 +49,20 @@ module.exports = (sequelize, DataTypes) => {
         {
             tableName: "permissions",
             timestamps: true,
+            // No defaultScope — use explicit where: { isActive: true } in queries
+            scopes: {
+                active: { where: { isActive: true } },
+                all: {},
+                inactive: { where: { isActive: false } },
+            },
+            indexes: [
+                {
+                    unique: true,
+                    fields: ['action'],
+                    where: { isActive: true },
+                    name: 'permissions_action_active_unique',
+                },
+            ],
         }
     );
 

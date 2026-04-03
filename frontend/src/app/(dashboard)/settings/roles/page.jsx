@@ -10,6 +10,7 @@ import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -112,6 +113,10 @@ const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }
 
 export default function RolesPage() {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('roles.create');
+  const canUpdate = hasPermission('roles.update');
+  const canDelete = hasPermission('roles.delete');
   const [roles, setRoles] = useState([]);
 
   const [menus, setMenus] = useState([]);
@@ -269,7 +274,7 @@ export default function RolesPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h4" fontWeight="bold">Roles Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenRoleModal()}>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenRoleModal()} disabled={!canCreate}>
           Add Role
         </Button>
       </Box>
@@ -296,8 +301,8 @@ export default function RolesPage() {
                 <TableCell>{r.description}</TableCell>
                 <TableCell>{r.permissions?.length || 0} Permissions</TableCell>
                 <TableCell>
-                  <IconButton sx={{ color: 'warning.main', mr: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(r)} title="Assign Permissions"><Security /></IconButton>
-                  <IconButton color="primary" onClick={() => handleOpenRoleModal(r)}><Edit /></IconButton>
+                  <IconButton sx={{ color: 'warning.main', mr: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(r)} title="Assign Permissions" disabled={!canUpdate}><Security /></IconButton>
+                  <IconButton color="primary" onClick={() => handleOpenRoleModal(r)} disabled={!canUpdate}><Edit /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -319,7 +324,7 @@ export default function RolesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenRoleModal(false)}>Cancel</Button>
-          <Button onClick={handleSaveRole} variant="contained">Save</Button>
+          <Button onClick={handleSaveRole} variant="contained" disabled={selectedRole ? !canUpdate : !canCreate}>Save</Button>
         </DialogActions>
       </Dialog>
 
@@ -359,7 +364,7 @@ export default function RolesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenPermModal(false)}>Cancel</Button>
-          <Button onClick={handleSavePermissions} variant="contained">Save Assignments</Button>
+          <Button onClick={handleSavePermissions} variant="contained" disabled={!canUpdate}>Save Assignments</Button>
         </DialogActions>
       </Dialog>
       

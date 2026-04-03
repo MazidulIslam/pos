@@ -14,12 +14,20 @@ import {
   Divider,
   Backdrop,
 } from "@mui/material";
-import { CloudDownload, Security, Storage, Timer } from "@mui/icons-material";
+import CloudDownload from "@mui/icons-material/CloudDownload";
+import Security from "@mui/icons-material/Security";
+import Storage from "@mui/icons-material/Storage";
+import Timer from "@mui/icons-material/Timer";
 import config from "@/config";
 import api from "@/utils/api";
+import { usePermissions } from "@/hooks/usePermissions";
 
 
 export default function BackupsPage() {
+  const { hasPermission, loading: permsLoading } = usePermissions();
+  const canList = hasPermission("backups.list");
+  const canGenerate = hasPermission("backups.generate");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -39,6 +47,7 @@ export default function BackupsPage() {
   }, [loading]);
 
   const handleDownloadBackup = async () => {
+    if (!canGenerate) return;
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -54,7 +63,6 @@ export default function BackupsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       
-      // Get filename from header or use default
       const contentDisposition = response.headers['content-disposition'];
       let filename = 'pos_backup.sql';
       if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
@@ -77,6 +85,22 @@ export default function BackupsPage() {
     }
   };
 
+  if (permsLoading) return null;
+
+  if (!canList) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Alert severity="error" icon={<Security />} sx={{ borderRadius: 3, p: 3 }}>
+          <Typography variant="h6" fontWeight="bold" gutterBottom>Access Denied</Typography>
+          <Typography variant="body1">
+            You do not have the required permission (backups.list) to access the backup management page. 
+            Please contact your administrator if you believe this is an error.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3, maxWidth: 800, mx: "auto" }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
@@ -92,6 +116,15 @@ export default function BackupsPage() {
           <Typography variant="h6" fontWeight="bold">Main Database (PostgreSQL)</Typography>
         </Box>
         <CardContent sx={{ p: 4 }}>
+          {!canGenerate && (
+            <Alert 
+              severity="warning" 
+              icon={<Security />}
+              sx={{ mb: 4, borderRadius: 2 }}
+            >
+              You do not have permission to generate database backups. Please contact your system administrator for access.
+            </Alert>
+          )}
           <Stack spacing={3}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
               <Box sx={{ 
@@ -132,24 +165,26 @@ export default function BackupsPage() {
               </Box>
             </Box>
 
-            <Box sx={{ pt: 2 }}>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CloudDownload />}
-                onClick={handleDownloadBackup}
-                disabled={loading}
-                sx={{ 
-                  py: 1.5, 
-                  fontWeight: "bold", 
-                  borderRadius: 2,
-                  boxShadow: "0 8px 16px rgba(25, 118, 210, 0.3)"
-                }}
-              >
-                {loading ? "Generating Backup..." : "Generate and Download Backup"}
-              </Button>
-            </Box>
+            {canGenerate && (
+              <Box sx={{ pt: 2 }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CloudDownload />}
+                  onClick={handleDownloadBackup}
+                  disabled={loading}
+                  sx={{ 
+                    py: 1.5, 
+                    fontWeight: "bold", 
+                    borderRadius: 2,
+                    boxShadow: "0 8px 16px rgba(25, 118, 210, 0.3)"
+                  }}
+                >
+                  {loading ? "Generating Backup..." : "Generate and Download Backup"}
+                </Button>
+              </Box>
+            )}
 
             {error && (
               <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>

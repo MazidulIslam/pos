@@ -2,6 +2,7 @@ const { Role, Permission } = require('../../models');
 
 exports.getRoles = async (req, res) => {
     try {
+        // Explicit isActive filter — no defaultScope on models
         const roles = await Role.findAll({
             where: { isActive: true },
             include: [{ model: Permission, as: 'permissions', through: { attributes: [] }, where: { isActive: true }, required: false }]
@@ -91,7 +92,7 @@ exports.assignPermissionsToRole = async (req, res) => {
             await role.setPermissions(safePermissionIds);
         }
 
-        const updatedRole = await Role.findByPk(id, { include: [{ model: Permission, as: 'permissions', where: { isActive: true }, required: false }] });
+        const updatedRole = await Role.findByPk(id, { include: [{ model: Permission, as: 'permissions', through: { attributes: [] }, where: { isActive: true }, required: false }] });
         return res.status(200).json({ success: true, message: 'Permissions assigned to Role', data: updatedRole });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });

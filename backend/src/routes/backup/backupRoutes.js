@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const backupController = require('../../controllers/backup/backupController');
-const { protect } = require('../../middlewares/authMiddleware');
+const { protect, authorize } = require('../../middlewares/authMiddleware');
 
 router.use(protect);
 
-router.get('/', backupController.generateBackup);
+router.get('/', authorize('backups.generate'), backupController.generateBackup);
 
 module.exports = router;

@@ -36,10 +36,15 @@ import { availableIcons } from "../../../../utils/iconMap";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 export default function MenusPage() {
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('menus.create');
+  const canUpdate = hasPermission('menus.update');
+  const canDelete = hasPermission('menus.delete');
   const [menus, setMenus] = useState([]);
 
   const [openUserModal, setOpenUserModal] = useState(false);
@@ -196,7 +201,7 @@ export default function MenusPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Typography variant="h4" fontWeight="bold">Menus Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()}>
+        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()} disabled={!canCreate}>
           Add Menu
         </Button>
       </Box>
@@ -233,8 +238,8 @@ export default function MenusPage() {
                   {m.permissions?.length} Actions
                 </TableCell>
                 <TableCell>
-                  <IconButton color="primary" onClick={() => handleOpenUserModal(m)}><Edit /></IconButton>
-                  <IconButton color="error" onClick={() => handleDeleteMenu(m.id)}><Delete /></IconButton>
+                  <IconButton color="primary" onClick={() => handleOpenUserModal(m)} disabled={!canUpdate}><Edit /></IconButton>
+                  <IconButton color="error" onClick={() => handleDeleteMenu(m.id)} disabled={!canDelete}><Delete /></IconButton>
                 </TableCell>
               </TableRow>
             )))}
@@ -298,7 +303,7 @@ export default function MenusPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenUserModal(false)}>Cancel</Button>
-          <Button onClick={handleSaveMenu} variant="contained">Save</Button>
+          <Button onClick={handleSaveMenu} variant="contained" disabled={selectedMenu ? !canUpdate : !canCreate}>Save</Button>
         </DialogActions>
       </Dialog>
       

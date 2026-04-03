@@ -8,12 +8,12 @@ const { User, Role } = require('../../models');
  */
 exports.generateBackup = async (req, res) => {
     try {
-        // 1. Permission-based check
+        // Permission check (redundant if route uses authorize middleware)
         const { Permission } = require('../../models');
         const user = await User.findByPk(req.user.id, {
             include: [
-                { 
-                    model: Role, 
+                {
+                    model: Role,
                     as: 'role',
                     include: [{ model: Permission, as: 'permissions' }]
                 },
@@ -29,16 +29,16 @@ exports.generateBackup = async (req, res) => {
             ...(user.directPermissions?.map(p => p.action) || [])
         ]);
 
-        const hasPermission = userPermissions.has('backups:generate') || userPermissions.has('*');
-
+        // Permission strings use dot notation (e.g., 'backups.generate')
+        const hasPermission = userPermissions.has('backups.generate') || userPermissions.has('*');
         if (!hasPermission) {
-            return res.status(403).json({ 
-                success: false, 
-                message: "Unauthorized: You do not have the 'backups:generate' permission." 
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized: You do not have the 'backups.generate' permission."
             });
         }
 
-        // 2. Database connection details from environment variables
+        // Database connection details from environment variables
         const dbParams = {
             host: process.env.DB_HOST || 'db',
             user: process.env.DB_USER || 'postgres',
@@ -46,14 +46,13 @@ exports.generateBackup = async (req, res) => {
             database: process.env.DB_NAME || 'pos_db'
         };
 
-        // 3. Set headers for file download
+        // Set headers for file download
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `pos_backup_${timestamp}.sql`;
-
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.setHeader('Content-Type', 'application/sql');
 
-        // 4. Spawn pg_dump process
+        // Spawn pg_dump process
         const pgDump = spawn('pg_dump', [
             '-h', dbParams.host,
             '-U', dbParams.user,
@@ -62,10 +61,10 @@ exports.generateBackup = async (req, res) => {
             env: { ...process.env, PGPASSWORD: dbParams.password }
         });
 
-        // 5. Pipe stdout directly to the response object
+        // Pipe stdout directly to the response object
         pgDump.stdout.pipe(res);
 
-        // 6. Handle errors
+        // Capture any errors from pg_dump
         let errorData = '';
         pgDump.stderr.on('data', (data) => {
             errorData += data.toString();
@@ -73,22 +72,25 @@ exports.generateBackup = async (req, res) => {
 
         pgDump.on('close', (code) => {
             if (code !== 0) {
-                console.error(`pg_dump process exited with code ${code}: ${errorData}`);
-                // If headers haven't been sent yet, we can send a JSON error
+                console.error(`pg_dump exited with code ${code}: ${errorData}`);
                 if (!res.headersSent) {
-                    return res.status(500).json({ 
-                        success: false, 
-                        message: "Backup generation failed.",
-                        error: errorData 
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Backup generation failed.',
+                        error: errorData
                     });
+                } else {
+                    // End the response to avoid hanging client
+                    res.end();
                 }
             }
         });
-
     } catch (error) {
-        console.error("Backup Exception:", error);
+        console.error('Backup Exception:', error);
         if (!res.headersSent) {
             return res.status(500).json({ success: false, message: error.message });
+        } else {
+            res.end();
         }
     }
 };

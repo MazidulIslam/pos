@@ -1,5 +1,5 @@
 const { verifyToken } = require("../utils/jwt");
-const { User, BlacklistedToken } = require("../models");
+const { User, Role, Permission, BlacklistedToken } = require("../models");
 
 /**
  * Middleware to protect routes by verifying JWT
@@ -7,19 +7,15 @@ const { User, BlacklistedToken } = require("../models");
 const protect = async (req, res, next) => {
     let token;
 
-    // 1. Check if Authorization header exists and starts with 'Bearer'
     if (
         req.headers.authorization &&
         req.headers.authorization.startsWith("Bearer")
     ) {
         try {
-            // 2. Extract token
             token = req.headers.authorization.split(" ")[1];
-
-            // 3. Verify token mathematically
             const decoded = verifyToken(token);
 
-            // 4. Check if token is physically blacklisted
+            // Check blacklist
             const isBlacklisted = await BlacklistedToken.findOne({
                 where: { token },
             });
@@ -27,28 +23,54 @@ const protect = async (req, res, next) => {
             if (isBlacklisted) {
                 return res.status(401).json({
                     success: false,
-                    message: "Not authorized, token has been invalidated",
+                    message: "Not authorized alt token",
                 });
             }
 
-            // 5. Find user by id from token payload and attach to request
-            req.user = await User.findByPk(decoded.id);
-            req.token = token;
-            req.tokenExp = decoded.exp;
+            // Find user with Role and Permissions
+            const user = await User.findByPk(decoded.id, {
+                include: [
+                    {
+                        model: Role,
+                        as: 'role',
+                        include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }]
+                    },
+                    {
+                        model: Permission,
+                        as: 'directPermissions',
+                        through: { attributes: [] }
+                    }
+                ]
+            });
 
-            if (!req.user) {
+            if (!user) {
                 return res.status(401).json({
                     success: false,
                     message: "Not authorized, user no longer exists",
                 });
             }
 
-            if (!req.user.isActive) {
+            if (!user.isActive) {
                 return res.status(403).json({
                     success: false,
                     message: "User account is deactivated",
                 });
             }
+
+            // Compute actual permissions for this request
+            let permissions = [];
+            if (user.role && user.role.name === 'Super Admin') {
+                permissions = ['*'];
+            } else {
+                const rolePerms = user.role && user.role.permissions ? user.role.permissions.map(p => p.action) : [];
+                const directPerms = user.directPermissions ? user.directPermissions.map(p => p.action) : [];
+                permissions = [...new Set([...rolePerms, ...directPerms])];
+            }
+
+            req.user = user;
+            req.permissions = permissions;
+            req.token = token;
+            req.tokenExp = decoded.exp;
 
             next();
         } catch (error) {
@@ -68,4 +90,36 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+/**
+ * Middleware factory to authorize specific permissions
+ * @param {string|string[]} requiredPermissions - Action(s) required to access route
+ */
+const authorize = (requiredPermission) => {
+    return (req, res, next) => {
+        if (!req.permissions) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden: No permissions found for user"
+            });
+        }
+
+        // Super Admin Bypass
+        if (req.permissions.includes('*')) {
+            return next();
+        }
+
+        // Check if user has the specific permission
+        const hasPerm = req.permissions.includes(requiredPermission);
+
+        if (!hasPerm) {
+            return res.status(403).json({
+                success: false,
+                message: `Forbidden: You do not have permission to perform this action (${requiredPermission})`
+            });
+        }
+
+        next();
+    };
+};
+
+module.exports = { protect, authorize };

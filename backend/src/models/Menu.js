@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
             slug: {
                 type: DataTypes.STRING,
                 allowNull: false,
-                unique: true,
+                // No simple unique:true — partial unique index handles this at DB level
             },
             path: {
                 type: DataTypes.STRING,
@@ -57,6 +57,20 @@ module.exports = (sequelize, DataTypes) => {
         {
             tableName: "menus",
             timestamps: true,
+            // No defaultScope — use explicit where: { isActive: true } in queries
+            scopes: {
+                active: { where: { isActive: true } },
+                all: {},
+                inactive: { where: { isActive: false } },
+            },
+            indexes: [
+                {
+                    unique: true,
+                    fields: ['slug'],
+                    where: { isActive: true },
+                    name: 'menus_slug_active_unique',
+                },
+            ],
         }
     );
 

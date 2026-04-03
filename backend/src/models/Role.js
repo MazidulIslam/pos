@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
+        // No simple unique:true — partial unique index handles this at DB level
         validate: {
           notEmpty: true,
         },
@@ -43,6 +43,20 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "roles",
       timestamps: true,
+      // No defaultScope — use explicit where: { isActive: true } in queries
+      scopes: {
+        active: { where: { isActive: true } },
+        all: {},
+        inactive: { where: { isActive: false } },
+      },
+      indexes: [
+        {
+          unique: true,
+          fields: ['name'],
+          where: { isActive: true },
+          name: 'roles_name_active_unique',
+        },
+      ],
     },
   );
 
