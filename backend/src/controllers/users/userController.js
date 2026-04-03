@@ -7,7 +7,11 @@ class UserController {
             const users = await User.findAll({
                 attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'isActive', 'roleId'],
                 include: [
-                    { model: Role, as: 'role' },
+                    { 
+                        model: Role, 
+                        as: 'role',
+                        include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }]
+                    },
                     { model: Permission, as: 'directPermissions', through: { attributes: [] }, where: { isActive: true }, required: false }
                 ],
                 order: [['createdAt', 'DESC']]

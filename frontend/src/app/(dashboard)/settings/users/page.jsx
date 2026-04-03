@@ -8,7 +8,7 @@ import {
   Accordion, AccordionSummary, AccordionDetails, FormGroup, FormControlLabel, Checkbox, Chip, TextField,
   Snackbar, Alert, CircularProgress
 } from "@mui/material";
-import { Edit, Security, ExpandMore, Add } from "@mui/icons-material";
+import { Edit, Security, ExpandMore, Add, Visibility } from "@mui/icons-material";
 import config from "../../../../config";
 import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
@@ -126,6 +126,7 @@ export default function UsersPage() {
   
   const [openPermModal, setOpenPermModal] = useState(false);
   const [openUserModal, setOpenUserModal] = useState(false);
+  const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   
   const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
@@ -338,6 +339,7 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell>{u.directPermissions?.length || 0} Custom Overrides</TableCell>
                 <TableCell>
+                  <IconButton color="info" onClick={() => { setSelectedUser(u); setOpenViewModal(true); }} title="View All Permissions"><Visibility /></IconButton>
                   <IconButton color="primary" onClick={() => handleOpenUserModal(u)} title="Edit User" disabled={!canUpdate}><Edit /></IconButton>
                   <IconButton sx={{ color: 'warning.main', ml: 1, bgcolor: 'rgba(237, 108, 2, 0.1)', '&:hover': { bgcolor: 'warning.main', color: 'white' } }} onClick={() => handleOpenPermModal(u)} title="Assign Direct Permissions" disabled={!canUpdate}><Security /></IconButton>
                 </TableCell>
@@ -432,6 +434,71 @@ export default function UsersPage() {
           {toast.message}
         </Alert>
       </Snackbar>
+
+      {/* View All Permissions Modal */}
+      <Dialog open={openViewModal} onClose={() => setOpenViewModal(false)} fullWidth maxWidth="md">
+        <DialogTitle>Permissions Overview: {selectedUser?.firstName} {selectedUser?.lastName}</DialogTitle>
+        <DialogContent dividers>
+          <Box mb={3} p={2} sx={{ bgcolor: 'info.lighter', borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
+            <Typography variant="subtitle2" color="info.dark" fontWeight="bold">Role: {selectedUser?.role?.name || 'No Role Assigned'}</Typography>
+            <Typography variant="body2" color="text.secondary">Below is the complete list of system permissions. Highlighted items represent what this user can currently access.</Typography>
+          </Box>
+          
+          {menus.map((menu) => {
+            const renderMenu = (node, level = 0) => {
+              const rolePermIds = new Set((selectedUser?.role?.permissions || []).map(p => p.id));
+              const directPermIds = new Set((selectedUser?.directPermissions || []).map(p => p.id));
+              
+              return (
+                <Box key={node.id} sx={{ ml: level * 3, mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, mb: 1 }}>
+                    {node.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {(node.permissions || []).map(p => {
+                      const fromRole = rolePermIds.has(p.id);
+                      const fromDirect = directPermIds.has(p.id);
+                      const hasIt = fromRole || fromDirect;
+                      
+                      return (
+                        <Chip 
+                          key={p.id}
+                          label={p.name}
+                          size="small"
+                          color={hasIt ? "success" : "default"}
+                          variant={hasIt ? "filled" : "outlined"}
+                          sx={{ 
+                            opacity: hasIt ? 1 : 0.4,
+                            fontWeight: 600,
+                            borderStyle: fromDirect ? 'dashed' : 'solid',
+                            borderColor: fromDirect ? 'warning.main' : 'inherit'
+                          }}
+                          title={fromRole && fromDirect ? "Both Role & Direct" : fromRole ? "From Role" : fromDirect ? "Directly Assigned" : "No Access"}
+                        />
+                      );
+                    })}
+                  </Box>
+                  {node.children && node.children.map(child => renderMenu(child, level + 1))}
+                </Box>
+              );
+            };
+            return renderMenu(menu);
+          })}
+        </DialogContent>
+        <DialogActions>
+          <Box sx={{ flexGrow: 1, px: 2, display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, bgcolor: 'success.main', borderRadius: '50%' }} />
+              <Typography variant="caption">Role/Direct Access</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, border: '1px dashed', borderColor: 'warning.main', borderRadius: '50%' }} />
+              <Typography variant="caption">Custom Override</Typography>
+            </Box>
+          </Box>
+          <Button onClick={() => setOpenViewModal(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
