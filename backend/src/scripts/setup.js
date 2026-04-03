@@ -28,7 +28,7 @@ async function setup() {
 
         // 3. Define Menus and their Permissions
         const menuData = [
-            { 
+            {
                 name: 'Dashboard', slug: 'dashboard', path: '/', icon: 'Dashboard', sortOrder: 1,
                 permissions: ['list']
             },
@@ -36,18 +36,18 @@ async function setup() {
                 name: 'Settings', slug: 'settings', path: '/settings', icon: 'Settings', sortOrder: 1000,
                 permissions: ['list'],
                 children: [
-                    { 
-                        name: 'Profile', slug: 'profile', path: '/profile', icon: 'Person', sortOrder: 0,
+                    {
+                        name: 'Profile', slug: 'profile', path: 'settings/profile', icon: 'Person', sortOrder: 0,
                         permissions: ['list', 'update']
                     },
                     { name: 'Users', slug: 'users', path: '/settings/users', icon: 'People', sortOrder: 1 },
                     { name: 'Roles', slug: 'roles', path: '/settings/roles', icon: 'ManageAccounts', sortOrder: 2 },
                     { name: 'Menus', slug: 'menus', path: '/settings/menus', icon: 'Menu', sortOrder: 3 },
-                    { 
+                    {
                         name: 'Backups', slug: 'backups', path: '/settings/backups', icon: 'Backup', sortOrder: 4,
                         permissions: ['list', 'generate']
                     },
-                    { 
+                    {
                         name: 'Account Settings', slug: 'account', path: '/settings/account', icon: 'Lock', sortOrder: 5,
                         permissions: ['list', 'update']
                     },
