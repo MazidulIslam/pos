@@ -21,9 +21,6 @@ connectDB();
 // Routes
 const authRoutes = require('./routes/auth/authRoutes');
 const userRoutes = require('./routes/users/userRoutes');
-const productRoutes = require('./routes/products/productRoutes');
-const customerRoutes = require('./routes/customers/customerRoutes');
-const saleRoutes = require('./routes/sales/saleRoutes');
 const menuRoutes = require('./routes/menus/menuRoutes');
 const roleRoutes = require('./routes/roles/roleRoutes');
 const backupRoutes = require('./routes/backup/backupRoutes');
@@ -31,9 +28,6 @@ const backupRoutes = require('./routes/backup/backupRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/sales', saleRoutes);
 app.use('/api/menus', menuRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/backups', backupRoutes);

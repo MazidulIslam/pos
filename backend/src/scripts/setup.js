@@ -37,7 +37,7 @@ async function setup() {
                 permissions: ['list'],
                 children: [
                     {
-                        name: 'Profile', slug: 'profile', path: 'settings/profile', icon: 'Person', sortOrder: 0,
+                        name: 'Profile', slug: 'profile', path: '/settings/profile', icon: 'Person', sortOrder: 0,
                         permissions: ['list', 'update']
                     },
                     { name: 'Users', slug: 'users', path: '/settings/users', icon: 'People', sortOrder: 1 },
