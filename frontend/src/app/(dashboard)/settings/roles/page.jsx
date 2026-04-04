@@ -127,7 +127,7 @@ export default function RolesPage() {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ name: "", description: "", isActive: true });
   const [selectedPerms, setSelectedPerms] = useState({});
 
   const [loading, setLoading] = useState(true);
@@ -177,10 +177,10 @@ export default function RolesPage() {
 
   const handleOpenRoleModal = (role = null) => {
     if (role) {
-      setFormData({ name: role.name, description: role.description || "" });
+      setFormData({ name: role.name, description: role.description || "", isActive: role.isActive !== false });
       setSelectedRole(role);
     } else {
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", isActive: true });
       setSelectedRole(null);
     }
     setOpenRoleModal(true);
@@ -268,19 +268,6 @@ export default function RolesPage() {
     }
   };
 
-  const handleToggleStatus = async (role) => {
-    try {
-      const data = await api.patch(`/roles/${role.id}/status`);
-      if (data.success) {
-        showToast(data.message);
-        fetchRoles();
-      } else {
-        showToast(data.message || "Failed to update status", "error");
-      }
-    } catch (err) {
-      showToast(err.message || "Network error updating status", "error");
-    }
-  };
 
   const handleOpenDeleteConfirm = (role) => {
     setSelectedRole(role);
@@ -334,15 +321,8 @@ export default function RolesPage() {
                 <TableCell>{r.description}</TableCell>
                 <TableCell>
                   <Box display="flex" alignItems="center">
-                    <Switch 
-                      size="small" 
-                      checked={!!r.isRoleActive} 
-                      onChange={() => handleToggleStatus(r)} 
-                      disabled={!canUpdate || r.name === 'Super Admin'} 
-                      color="success"
-                    />
-                    <Typography variant="caption" sx={{ color: r.isRoleActive ? 'success.main' : 'text.disabled', fontWeight: 'bold', ml: 0.5 }}>
-                      {r.isRoleActive ? 'ACTIVE' : 'INACTIVE'}
+                    <Typography variant="caption" sx={{ color: r.isActive !== false ? 'success.main' : 'text.disabled', fontWeight: 'bold' }}>
+                      {r.isActive === false ? 'INACTIVE' : 'ACTIVE'}
                     </Typography>
                   </Box>
                 </TableCell>
@@ -369,6 +349,20 @@ export default function RolesPage() {
         <DialogContent>
           <TextField margin="dense" label="Role Name" fullWidth value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
           <TextField margin="dense" label="Description" fullWidth value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+          {selectedRole && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  color="success"
+                  disabled={selectedRole.name === 'Super Admin'}
+                />
+              }
+              label={formData.isActive ? "Active" : "Inactive"}
+              sx={{ mt: 2 }}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenRoleModal(false)}>Cancel</Button>

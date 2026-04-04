@@ -48,10 +48,7 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.BOOLEAN,
                 defaultValue: true, // Used for soft deletion (False = Deleted)
             },
-            isUserActive: {
-                type: DataTypes.BOOLEAN,
-                defaultValue: true, // User account status (Active/Inactive)
-            },
+
             roleId: {
                 type: DataTypes.UUID,
                 allowNull: true, // Optional linking to Role for robust access control

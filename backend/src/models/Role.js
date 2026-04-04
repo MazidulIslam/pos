@@ -23,10 +23,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: true, // Used for soft deletion (False = Deleted)
       },
-      isRoleActive: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true, // Role operational status (Active/Inactive)
-      },
+
       createdBy: {
         type: DataTypes.UUID,
         allowNull: true,

@@ -50,12 +50,7 @@ const protect = async (req, res, next) => {
                 });
             }
 
-            if (!user.isUserActive) {
-                return res.status(403).json({
-                    success: false,
-                    message: "User account is deactivated",
-                });
-            }
+
 
             // Compute actual permissions for this request
             let permissions = [];

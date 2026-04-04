@@ -8,7 +8,7 @@ router.use(protect);
 router.get('/', authorize('roles.list'), roleController.getRoles);
 router.post('/', authorize('roles.create'), roleController.createRole);
 router.put('/:id', authorize('roles.update'), roleController.updateRole);
-router.patch('/:id/status', authorize('roles.update'), roleController.toggleRoleStatus);
+
 router.delete('/:id', authorize('roles.delete'), roleController.deleteRole);
 router.post('/:id/permissions', authorize('roles.update'), roleController.assignPermissionsToRole);
 

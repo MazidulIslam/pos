@@ -4,8 +4,9 @@ class UserController {
     async getAllUsers(req, res) {
         try {
             const { User, Role, Permission } = require('../../models');
-            const users = await User.findAll({
-                attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'isUserActive', 'roleId'],
+            // Use unscoped() to fetch both active and inactive (soft-deleted) users
+            const users = await User.unscoped().findAll({
+                attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'roleId', 'isActive'],
                 include: [
                     { 
                         model: Role, 
@@ -25,9 +26,9 @@ class UserController {
     async updateUser(req, res) {
         try {
             const { id } = req.params;
-            const { username, email, password, firstName, lastName, phone, roleId } = req.body;
+            const { username, email, password, firstName, lastName, phone, roleId, isActive } = req.body;
             const { User, Role } = require('../../models');
-            const user = await User.findByPk(id);
+            const user = await User.unscoped().findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
             
             // Prevent Super Admins from accidentally demoting themselves out of existence
@@ -53,7 +54,7 @@ class UserController {
                 }
             }
 
-            const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null };
+            const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null, ...(isActive !== undefined && { isActive }) };
             if (password) {
                 const bcrypt = require('bcrypt');
                 updatePayload.password = await bcrypt.hash(password, 10);
@@ -209,19 +210,6 @@ class UserController {
         }
     }
 
-    async toggleUserStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { User } = require('../../models');
-            const user = await User.findByPk(id);
-            if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-            
-            await user.update({ isUserActive: !user.isUserActive });
-            return res.status(200).json({ success: true, message: `User status changed to ${user.isUserActive ? 'Active' : 'Inactive'}`, data: user });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
 
     async deleteUser(req, res) {
         try {

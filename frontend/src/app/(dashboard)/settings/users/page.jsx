@@ -131,7 +131,7 @@ export default function UsersPage() {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   
-  const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+  const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [selectedPerms, setSelectedPerms] = useState({});
 
@@ -205,11 +205,12 @@ export default function UsersPage() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         phone: user.phone || "",
-        roleId: user.roleId || ""
+        roleId: user.roleId || "",
+        isActive: user.isActive !== false
       });
       setSelectedUser(user);
     } else {
-      setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+      setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
       setSelectedUser(null);
     }
     setOpenUserModal(true);
@@ -278,19 +279,6 @@ export default function UsersPage() {
     }
   };
 
-  const handleToggleStatus = async (user) => {
-    try {
-      const data = await api.patch(`/users/${user.id}/status`);
-      if (data.success) {
-        showToast(data.message);
-        fetchUsers();
-      } else {
-        showToast(data.message || "Failed to update status", "error");
-      }
-    } catch (err) {
-      showToast(err.message || "Network error updating status", "error");
-    }
-  };
 
   const handleOpenDeleteConfirm = (user) => {
     setSelectedUser(user);
@@ -327,7 +315,7 @@ export default function UsersPage() {
       if (data.success) {
         showToast(`User successfully ${selectedUser ? "updated" : "created"}!`);
         setOpenUserModal(false);
-        setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "" });
+        setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
         fetchUsers();
       } else {
         showToast(data.message || "Failed to save user", "error");
@@ -376,15 +364,8 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell>
                    <Box display="flex" alignItems="center">
-                     <Switch 
-                       size="small" 
-                       checked={!!u.isUserActive} 
-                       onChange={() => handleToggleStatus(u)} 
-                       disabled={!canUpdate} 
-                       color="success"
-                     />
-                     <Typography variant="caption" sx={{ color: u.isUserActive ? 'success.main' : 'text.disabled', fontWeight: 'bold', ml: 0.5 }}>
-                       {u.isUserActive ? 'ACTIVE' : 'INACTIVE'}
+                     <Typography variant="caption" sx={{ color: u.isActive !== false ? 'success.main' : 'text.disabled', fontWeight: 'bold' }}>
+                       {u.isActive === false ? 'INACTIVE' : 'ACTIVE'}
                      </Typography>
                    </Box>
                 </TableCell>
@@ -469,11 +450,24 @@ export default function UsersPage() {
               onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
             >
               <MenuItem value=""><em>None</em></MenuItem>
-              {roles.map(r => (
+              {roles.filter(r => r.isActive !== false || r.id === formData.roleId).map(r => (
                 <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
+          {selectedUser && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  color="success"
+                />
+              }
+              label={formData.isActive ? "Active" : "Inactive"}
+              sx={{ mt: 2 }}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenUserModal(false)}>Cancel</Button>

@@ -2,9 +2,8 @@ const { Role, Permission } = require('../../models');
 
 exports.getRoles = async (req, res) => {
     try {
-        // Explicit isActive filter — no defaultScope on models
-        const roles = await Role.findAll({
-            // attributes: ['id', 'name', 'description', 'isRoleActive'], // Assuming standard attributes if not specified
+        // Use unscoped() to fetch both active and inactive (soft-deleted) roles
+        const roles = await Role.unscoped().findAll({
             include: [{ model: Permission, as: 'permissions', through: { attributes: [] }, where: { isActive: true }, required: false }]
         });
         return res.status(200).json({ success: true, data: roles });
@@ -29,8 +28,8 @@ exports.createRole = async (req, res) => {
 exports.updateRole = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description } = req.body;
-        const role = await Role.findByPk(id);
+        const { name, description, isActive } = req.body;
+        const role = await Role.unscoped().findByPk(id);
         if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
         if (role.name === 'Super Admin' && name !== 'Super Admin') {
@@ -39,7 +38,7 @@ exports.updateRole = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Cannot rename a standard role to Super Admin.' });
         }
 
-        await role.update({ name, description });
+        await role.update({ name, description, ...(isActive !== undefined && { isActive }) });
         return res.status(200).json({ success: true, message: 'Role updated successfully', data: role });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -99,18 +98,6 @@ exports.assignPermissionsToRole = async (req, res) => {
     }
 };
 
-exports.toggleRoleStatus = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const role = await Role.findByPk(id);
-        if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
-
-        await role.update({ isRoleActive: !role.isRoleActive });
-        return res.status(200).json({ success: true, message: `Role status changed to ${role.isRoleActive ? 'Active' : 'Inactive'}`, data: role });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
-    }
-};
 
 exports.deleteRole = async (req, res) => {
     try {
