@@ -22,6 +22,7 @@ import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut } from "lucide-r
 import { styled, alpha } from "@mui/material/styles";
 import config from "../../config";
 import api from "../../utils/api";
+import { usePermissions } from "../../hooks/usePermissions";
 
 
 const SearchContainer = styled("div")(({ theme }) => ({
@@ -75,6 +76,10 @@ export const Header = () => {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const router = useRouter();
+  const { hasPermission } = usePermissions();
+  
+  const canViewProfile = hasPermission("profile.view") || hasPermission("profile.update");
+  const canViewSettings = hasPermission("settings.view") || hasPermission("settings.update");
   
   const [user, setUser] = useState(null);
 
@@ -242,24 +247,28 @@ export const Header = () => {
                 <Divider sx={{ my: 0.5 }} />
               </Box>
 
-              <MenuItem onClick={() => { handleMenuClose(); router.push('/profile'); }}>
-                <ListItemIcon>
-                  <User size={18} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="My Profile"
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                />
-              </MenuItem>
-              <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/account'); }}>
-                <ListItemIcon>
-                  <Settings size={18} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Account Settings"
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                />
-              </MenuItem>
+              {canViewProfile && (
+                <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/profile'); }}>
+                  <ListItemIcon>
+                    <User size={18} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="My Profile"
+                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                  />
+                </MenuItem>
+              )}
+              {canViewSettings && (
+                <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/account'); }}>
+                  <ListItemIcon>
+                    <Settings size={18} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Account Settings"
+                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                  />
+                </MenuItem>
+              )}
 
               <Divider sx={{ my: 1 }} />
 

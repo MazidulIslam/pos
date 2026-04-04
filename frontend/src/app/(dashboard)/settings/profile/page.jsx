@@ -15,10 +15,9 @@ import {
     Alert,
 } from "@mui/material";
 import { Save, User as UserIcon, ShieldAlert } from "lucide-react";
-import config from "../../../config";
 import { useRouter } from "next/navigation";
-import api from "../../../utils/api";
-import { usePermissions } from "../../../hooks/usePermissions";
+import api from "../../../../utils/api";
+import { usePermissions } from "../../../../hooks/usePermissions";
 
 
 export default function ProfilePage() {
@@ -72,7 +71,7 @@ export default function ProfilePage() {
                 lastName: formData.lastName,
                 phone: formData.phone,
             });
-            
+
             if (data.success) {
                 // Update local storage user just in case someone is relying on it
                 localStorage.setItem("user", JSON.stringify(data.data));
@@ -103,8 +102,8 @@ export default function ProfilePage() {
             <Card sx={{ borderRadius: 4, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
                 <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                     {!canUpdate && (
-                        <Alert 
-                            severity="info" 
+                        <Alert
+                            severity="info"
                             icon={<ShieldAlert size={20} />}
                             sx={{ mb: 4, borderRadius: 2 }}
                         >
