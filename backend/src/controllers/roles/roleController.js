@@ -32,9 +32,16 @@ exports.updateRole = async (req, res) => {
         const role = await Role.unscoped().findByPk(id);
         if (!role) return res.status(404).json({ success: false, message: 'Role not found' });
 
-        if (role.name === 'Super Admin' && name !== 'Super Admin') {
-            return res.status(403).json({ success: false, message: 'The Super Admin role name is immutable and cannot be changed.' });
-        } else if (role.name !== 'Super Admin' && name && name.trim().toLowerCase() === 'super admin') {
+        if (role.name === 'Super Admin') {
+            const { User } = require('../../models');
+            const requestingUser = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
+            if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                return res.status(403).json({ success: false, message: 'Security Block: Only existing Super Admins can update the Super Admin role properties.' });
+            }
+            if (name !== 'Super Admin') {
+                return res.status(403).json({ success: false, message: 'The Super Admin role name is immutable and cannot be changed.' });
+            }
+        } else if (name && name.trim().toLowerCase() === 'super admin') {
             return res.status(403).json({ success: false, message: 'Cannot rename a standard role to Super Admin.' });
         }
 
@@ -60,6 +67,13 @@ exports.assignPermissionsToRole = async (req, res) => {
                 { model: Permission, as: 'directPermissions', through: { attributes: [] } }
             ]
         });
+
+        // SECURITY BLOCK: Subordinates cannot assign permissions to the Super Admin role
+        if (role.name === 'Super Admin') {
+            if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                return res.status(403).json({ success: false, message: 'Security Block: Only existing Super Admins can modify permissions for the Super Admin role.' });
+            }
+        }
 
         let safePermissionIds = permissionIds;
 

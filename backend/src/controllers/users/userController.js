@@ -31,6 +31,17 @@ class UserController {
             const user = await User.unscoped().findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
             
+            // SECURITY BLOCK: Subordinates cannot edit existing Super Admin users whatsoever
+            if (user.roleId) {
+                const currentTargetRole = await Role.findByPk(user.roleId);
+                if (currentTargetRole && currentTargetRole.name === 'Super Admin') {
+                    const requestingUserForCheck = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
+                    if (!requestingUserForCheck.role || requestingUserForCheck.role.name !== 'Super Admin') {
+                        return res.status(403).json({ success: false, message: 'Security Block: Only existing Super Admins can modify Super Admin accounts.' });
+                    }
+                }
+            }
+            
             // Prevent Super Admins from accidentally demoting themselves out of existence
             if (roleId && roleId !== user.roleId) {
                 // Check if they are Demoting from Super Admin
@@ -173,6 +184,16 @@ class UserController {
                 ]
             });
 
+            // SECURITY BLOCK: Subordinates cannot assign permissions to Super Admin users
+            if (user.roleId) {
+                const targetRole = await Role.findByPk(user.roleId);
+                if (targetRole && targetRole.name === 'Super Admin') {
+                    if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
+                        return res.status(403).json({ success: false, message: 'Security Block: Only existing Super Admins can modify permissions for Super Admin accounts.' });
+                    }
+                }
+            }
+
             let safePermissionIds = permissionIds;
 
             if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
@@ -221,6 +242,18 @@ class UserController {
             // Prevent self-deletion
             if (user.id === req.user.id) {
                 return res.status(403).json({ success: false, message: 'Security Block: You cannot delete your own account.' });
+            }
+
+            // SECURITY BLOCK: Subordinates cannot delete Super Admin users
+            if (user.roleId) {
+                const { Role } = require('../../models');
+                const targetRole = await Role.findByPk(user.roleId);
+                if (targetRole && targetRole.name === 'Super Admin') {
+                    const requestingUserCheck = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
+                    if (!requestingUserCheck.role || requestingUserCheck.role.name !== 'Super Admin') {
+                        return res.status(403).json({ success: false, message: 'Security Block: Only existing Super Admins can delete Super Admin accounts.' });
+                    }
+                }
             }
 
             // Soft-delete: set isActive to false
