@@ -17,6 +17,26 @@ export function AuthGuard({ children }) {
         }
 
         try {
+            // Check if token is expired
+            const payloadBase64 = token.split('.')[1];
+            if (payloadBase64) {
+                const decodedJson = atob(payloadBase64);
+                const decodedPayload = JSON.parse(decodedJson);
+                if (decodedPayload.exp && (decodedPayload.exp * 1000 < Date.now())) {
+                    console.warn("Session expired. Redirecting to login...");
+                    localStorage.clear();
+                    router.push("/login");
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to decode token", e);
+            localStorage.clear();
+            router.push("/login");
+            return;
+        }
+
+        try {
             const storedMenus = localStorage.getItem("menus");
             const storedPerms = localStorage.getItem("permissions");
             

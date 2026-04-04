@@ -49,6 +49,8 @@ api.interceptors.response.use(
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
+        // Return a pending promise so the .catch() doesn't fire and show red toasts during redirect
+        return new Promise(() => {});
       }
 
       // Return a standard error message

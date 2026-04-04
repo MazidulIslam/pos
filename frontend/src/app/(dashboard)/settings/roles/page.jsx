@@ -148,8 +148,7 @@ export default function RolesPage() {
         showToast(data.message || "Failed to fetch roles", "error");
       }
     } catch (err) { 
-        console.error(err); 
-        showToast(err.message || "Network error fetching roles", "error");
+      showToast(err.message || "Network error fetching roles", "error");
     }
   };
 
@@ -172,8 +171,7 @@ export default function RolesPage() {
         showToast(data.message || "Failed to fetch menus", "error");
       }
     } catch (err) { 
-        console.error(err); 
-        showToast(err.message || "Network error fetching menus", "error");
+      showToast(err.message || "Network error fetching menus", "error");
     }
   };
 
@@ -204,8 +202,7 @@ export default function RolesPage() {
         showToast(data.message || "Failed to save role", "error");
       }
     } catch (error) { 
-        console.error(error); 
-        showToast(error.message || "Network error saving role", "error");
+      showToast(error.message || "Network error saving role", "error");
     }
   };
 
@@ -267,8 +264,7 @@ export default function RolesPage() {
         showToast(data.message || "Failed to assign permissions", "error");
       }
     } catch (error) { 
-        console.error(error); 
-        showToast(error.message || "Network error capturing permissions", "error");
+      showToast(error.message || "Network error capturing permissions", "error");
     }
   };
 
