@@ -175,18 +175,17 @@ export const Sidebar = () => {
           minHeight: level === 0 ? 48 : 40,
           width: "100%",
           justifyContent: isExpanded ? "flex-start" : "center",
-          bgcolor: isInternalActive ? (level === 0 ? "primary.light" : "rgba(79, 70, 229, 0.08)") : "transparent",
-          color: isInternalActive ? "primary.dark" : "text.secondary",
+          bgcolor: isInternalActive ? (level === 0 ? "primary.main" : "rgba(var(--primary-color-rgb), 0.12)") : "transparent",
+          color: isInternalActive ? (level === 0 ? "primary.contrastText" : "primary.main") : "text.secondary",
           ml: isExpanded ? level * 1.5 : 0, // Indentation
           "& .MuiListItemText-primary": {
-            color: isInternalActive ? "primary.dark" : "inherit",
+            color: 'inherit',
           },
           transition: "all 0.2s ease",
           "&:hover": {
             bgcolor: isInternalActive
-              ? (level === 0 ? "primary.light" : "rgba(79, 70, 22, 0.12)")
+              ? (level === 0 ? "primary.main" : "rgba(var(--primary-color-rgb), 0.18)")
               : "secondary.main",
-            color: isInternalActive ? "primary.dark" : "text.primary",
           },
         }}
       >
@@ -194,7 +193,7 @@ export const Sidebar = () => {
           sx={{
             minWidth: 0,
             mr: isExpanded ? 1.5 : 0,
-            color: isInternalActive ? "primary.main" : "inherit",
+            color: isInternalActive ? (level === 0 ? "primary.contrastText" : "primary.main") : "inherit",
             justifyContent: "center",
             transition: "margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
@@ -226,7 +225,7 @@ export const Sidebar = () => {
             opacity: isExpanded ? 1 : 0,
             maxWidth: isExpanded ? 24 : 0,
             overflow: "hidden",
-            color: isInternalActive ? "primary.main" : "text.secondary",
+            color: isInternalActive ? (level === 0 ? "primary.contrastText" : "primary.main") : "text.secondary",
             transition:
               "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}

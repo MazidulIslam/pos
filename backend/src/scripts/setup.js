@@ -58,8 +58,9 @@ async function setup() {
                     { name: 'Users', slug: 'users', path: '/settings/users', icon: 'People', sortOrder: 1 },
                     { name: 'Roles', slug: 'roles', path: '/settings/roles', icon: 'ManageAccounts', sortOrder: 2 },
                     { name: 'Menus', slug: 'menus', path: '/settings/menus', icon: 'Menu', sortOrder: 3 },
+                    { name: 'Appearance', slug: 'appearance', path: '/settings/appearance', icon: 'Palette', sortOrder: 4 },
                     {
-                        name: 'Backups', slug: 'backups', path: '/settings/backups', icon: 'Backup', sortOrder: 4,
+                        name: 'Backups', slug: 'backups', path: '/settings/backups', icon: 'Backup', sortOrder: 5,
                         permissions: ['list', 'generate']
                     },
                     {
@@ -111,16 +112,27 @@ async function setup() {
             });
 
             // Ensure specified permissions exist
-            for (const action of actions) {
-                await Permission.findOrCreate({
-                    where: { menu_id: menu.id, action: `${m.slug}.${action}` },
+            for (const actionSuffix of actions) {
+                const fullAction = `${m.slug}.${actionSuffix}`;
+                const [permission, created] = await Permission.findOrCreate({
+                    where: { action: fullAction },
                     defaults: {
-                        name: `${m.name} ${action.charAt(0).toUpperCase() + action.slice(1)}`,
-                        action: `${m.slug}.${action}`,
+                        menu_id: menu.id,
+                        name: `${m.name} ${actionSuffix.charAt(0).toUpperCase() + actionSuffix.slice(1)}`,
                         isActive: true,
                         isDefault: true
                     }
                 });
+
+                if (!created) {
+                    // Update existing permission to ensure it's linked to correct menu and is active
+                    await permission.update({
+                        menu_id: menu.id,
+                        name: `${m.name} ${actionSuffix.charAt(0).toUpperCase() + actionSuffix.slice(1)}`,
+                        isActive: true,
+                        isDefault: true
+                    });
+                }
             }
 
             if (m.children) {

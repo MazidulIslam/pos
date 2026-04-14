@@ -194,11 +194,12 @@ export const Header = () => {
               sx={{
                 width: 36,
                 height: 36,
-                bgcolor: "primary.light",
-                color: "primary.main",
+                bgcolor: "primary.main",
+                color: "white",
                 fontWeight: "bold",
                 fontSize: 14,
                 cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(var(--primary-color-rgb), 0.25)"
               }}
             >
               {getInitials(userName)}

@@ -29,7 +29,7 @@
     --background: #f8fafc;
     --foreground: #0f172a;
 
-    --primary: #4f46e5;
+    --primary: var(--primary-color, #4f46e5);
     --primary-foreground: #ffffff;
 
     --secondary: #f1f5f9;

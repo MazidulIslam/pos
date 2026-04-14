@@ -9,7 +9,8 @@ import {
   Kitchen, SupervisorAccount, ManageAccounts, Badge, Assignment, Work, LocalMall,
   Payment as CardPayment, CreditCard, PriceCheck, MonetizationOn as Money, 
   Calculate, Campaign, AutoGraph, Group, Person, Business, LocationOn, Phone,
-  Email, Language, Download, Upload, CloudSync, History, Backup, Storage
+  Email, Language, Download, Upload, CloudSync, History, Backup, Storage,
+  Palette, ColorLens
 } from "@mui/icons-material";
 
 export const availableIcons = {
@@ -24,5 +25,6 @@ export const availableIcons = {
   CardPayment, CreditCard, PriceCheck, Money, 
   Calculate, Campaign, AutoGraph, Group, Person, Business, LocationOn, Phone,
   Email, Language, Download, Upload, CloudSync, History, Backup, Storage,
+  Palette, ColorLens,
   Database: Storage
 };

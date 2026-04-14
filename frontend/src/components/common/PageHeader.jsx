@@ -20,7 +20,9 @@ export const PageHeader = ({
   // Debounce the search change
   useEffect(() => {
     const timer = setTimeout(() => {
-      onSearchChange(localSearch);
+      if (typeof onSearchChange === "function") {
+        onSearchChange(localSearch);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
