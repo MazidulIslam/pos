@@ -24,6 +24,7 @@ const userRoutes = require('./routes/users/userRoutes');
 const menuRoutes = require('./routes/menus/menuRoutes');
 const roleRoutes = require('./routes/roles/roleRoutes');
 const backupRoutes = require('./routes/backup/backupRoutes');
+const searchRoutes = require('./routes/search/searchRoutes');
 
 
 app.use('/api/auth', authRoutes);
@@ -31,6 +32,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/menus', menuRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/backups', backupRoutes);
+app.use('/api/search', searchRoutes);
 
 
 app.get('/api/health', (req, res) => {

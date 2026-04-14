@@ -18,11 +18,13 @@ import {
   Divider,
 } from "@mui/material";
 import { useSidebar } from "./SidebarContext";
-import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut } from "lucide-react";
+import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut, Users, ShieldCheck, Key, MousePointer2 } from "lucide-react";
 import { styled, alpha } from "@mui/material/styles";
+import { ClickAwayListener, Paper, List, ListItemButton, Avatar as SmallAvatar } from "@mui/material";
 import config from "../../config";
 import api from "../../utils/api";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useThemeSettings } from "@/context/ThemeContext";
 
 
 const SearchContainer = styled("div")(({ theme }) => ({
@@ -82,6 +84,11 @@ export const Header = () => {
   const canViewSettings = hasPermission("settings.view") || hasPermission("settings.update");
   
   const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { fontSize } = useThemeSettings();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -91,6 +98,38 @@ export const Header = () => {
       } catch (e) {}
     }
   }, []);
+
+  // Global Search Logic
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearchOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await api.get(`/search?q=${searchQuery}`);
+        if (response.success) {
+          setSearchResults(response.data);
+          setIsSearchOpen(true);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSearchResultClick = (path) => {
+    setIsSearchOpen(false);
+    setSearchQuery("");
+    router.push(path);
+  };
 
   const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : "Loading...";
   const userRole = user?.role?.name || "User";
@@ -150,16 +189,82 @@ export const Header = () => {
           <MenuIcon />
         </IconButton>
 
-        <Box sx={{ flexGrow: 1, display: { xs: "none", md: "block" } }}>
-          <SearchContainer>
-            <SearchIconWrapper>
-              <Search size={18} />
-            </SearchIconWrapper>
-            <StyledInputBase
-              placeholder="Search products, sales, customers..."
-              inputProps={{ "aria-label": "search" }}
-            />
-          </SearchContainer>
+        <Box sx={{ flexGrow: 1, display: { xs: "none", md: "block" }, position: "relative" }}>
+          <ClickAwayListener onClickAway={() => setIsSearchOpen(false)}>
+            <Box>
+              <SearchContainer>
+                <SearchIconWrapper>
+                  <Search size={18} />
+                </SearchIconWrapper>
+                <StyledInputBase
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => searchQuery.length >= 2 && setIsSearchOpen(true)}
+                  placeholder="Search users, roles, system modules..."
+                  inputProps={{ "aria-label": "search" }}
+                />
+              </SearchContainer>
+              
+              {/* Search Results Dropdown */}
+              {isSearchOpen && (
+                <Paper
+                  sx={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 24,
+                    width: "calc(100% - 48px)",
+                    maxHeight: 400,
+                    overflowY: "auto",
+                    zIndex: 1400,
+                    borderRadius: 3,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <List sx={{ p: 1 }}>
+                    {searchResults.length > 0 ? (
+                      searchResults.map((result) => (
+                        <ListItemButton
+                          key={`${result.type}-${result.id}`}
+                          onClick={() => handleSearchResultClick(result.path)}
+                          sx={{ borderRadius: 2, mb: 0.5, py: 1 }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 40 }}>
+                            <Box 
+                              sx={{ 
+                                bgcolor: "secondary.main", 
+                                color: "primary.main",
+                                p: 1, 
+                                borderRadius: 1.5,
+                                display: "flex" 
+                              }}
+                            >
+                              {result.type === 'User' ? <Users size={18} /> : 
+                               result.type === 'Role' ? <ShieldCheck size={18} /> : 
+                               <Key size={18} />}
+                            </Box>
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={result.title}
+                            secondary={result.subtitle}
+                            primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}
+                            secondaryTypographyProps={{ fontSize: 12 }}
+                          />
+                          <MousePointer2 size={14} style={{ opacity: 0.3 }} />
+                        </ListItemButton>
+                      ))
+                    ) : (
+                      <Box sx={{ p: 4, textAlign: "center" }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {isSearching ? "Searching..." : "No results found."}
+                        </Typography>
+                      </Box>
+                    )}
+                  </List>
+                </Paper>
+              )}
+            </Box>
+          </ClickAwayListener>
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
