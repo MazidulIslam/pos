@@ -271,8 +271,22 @@ export default function MenusPage() {
         <DialogTitle>{selectedMenu ? "Edit Menu" : "Add Menu"}</DialogTitle>
         <DialogContent>
           <TextField margin="dense" label="Menu Name" fullWidth value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-          <TextField margin="dense" label="Slug (e.g. products)" fullWidth value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} />
-          <TextField margin="dense" label="Route Path (e.g. /products)" fullWidth value={formData.path} onChange={(e) => setFormData({ ...formData, path: e.target.value })} />
+          <TextField 
+            margin="dense" 
+            label="Slug (Unique Identifier)" 
+            fullWidth 
+            value={formData.slug} 
+            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            helperText="Used for system-level logic and permissions (e.g. 'inventory-settings'). Use lowercase, no spaces."
+          />
+          <TextField 
+            margin="dense" 
+            label="Route Path" 
+            fullWidth 
+            value={formData.path} 
+            onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+            helperText="The URL to navigate to (e.g. '/dashboard/inventory'). Use '#' if this menu is only a folder for child menus."
+          />
           
           <Box display="flex" gap={2} alignItems="flex-start" mt={1} mb={1}>
             <TextField margin="dense" label="Icon Name" fullWidth value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} helperText="Uses curated @mui/icons-material library." />
