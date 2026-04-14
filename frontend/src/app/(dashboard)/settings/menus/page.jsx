@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
   Typography,
@@ -29,7 +29,8 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Autocomplete
+  Autocomplete,
+  TablePagination
 } from "@mui/material";
 import { Add, Edit, Delete, Security } from "@mui/icons-material";
 import { availableIcons } from "../../../../utils/iconMap";
@@ -38,6 +39,8 @@ import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
+import { PageHeader } from "../../../../components/common/PageHeader";
+
 
 
 export default function MenusPage() {
@@ -55,6 +58,13 @@ export default function MenusPage() {
 
   // Form states
   const [formData, setFormData] = useState({ name: "", slug: "", path: "", icon: "", sortOrder: 0, parent_id: "" });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [allMenus, setAllMenus] = useState([]); // For lookup logic
+
   
   // New Menu Permissions states UI
   const [defaultPerms, setDefaultPerms] = useState({ list: true, view: false, create: false, update: false, delete: false });
@@ -69,12 +79,27 @@ export default function MenusPage() {
   const showToast = (message, severity = "success") => setToast({ open: true, message, severity });
   const handleCloseToast = () => setToast({ ...toast, open: false });
 
-  const fetchMenus = async () => {
-    setLoading(true);
+  const fetchMenus = async (paginate = false) => {
+    if (paginate) {
+        setLoading(true);
+        setIsSearching(true);
+    }
     try {
-      const data = await api.get("/menus");
+      const data = await api.get("/menus", {
+        params: {
+          paginate: paginate ? "true" : "false",
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchTerm
+        }
+      });
       if (data.success) {
-        setMenus(data.data);
+        if (paginate) {
+            setMenus(data.data);
+            setTotalCount(data.meta.total);
+        } else {
+            setAllMenus(data.data);
+        }
       } else {
         showToast(data.message || "Failed to fetch menus", "error");
       }
@@ -82,12 +107,46 @@ export default function MenusPage() {
       console.error("Failed to fetch menus", error);
       showToast(error.message || "Network error fetching menus", "error");
     } finally {
-      setLoading(false);
+      if (paginate) {
+          setLoading(false);
+          setIsSearching(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchMenus();
+    fetchMenus(false); // Fetch full list for lookups
+  }, []);
+
+  const prevPage = useRef(page);
+  const prevRows = useRef(rowsPerPage);
+
+  useEffect(() => {
+    // 1. Force fetch if page or rowsPerPage changed
+    const isPaginationChange = page !== prevPage.current || rowsPerPage !== prevRows.current;
+    prevPage.current = page;
+    prevRows.current = rowsPerPage;
+
+    if (isPaginationChange || searchTerm === "") {
+        fetchMenus(true);
+    } else {
+        // Hybrid logic for search: check local matches
+        const searchLower = searchTerm.toLowerCase();
+        const hasLocalMatches = menus.some(m => 
+          m.name?.toLowerCase().includes(searchLower) ||
+          m.slug?.toLowerCase().includes(searchLower) ||
+          m.path?.toLowerCase().includes(searchLower)
+        );
+
+        if (!hasLocalMatches) {
+            fetchMenus(true);
+        }
+    }
+  }, [page, rowsPerPage, searchTerm]);
+
+  const handleSearchChange = useCallback((val) => {
+    setSearchTerm(val);
+    setPage(0);
   }, []);
 
   const handleOpenUserModal = (menu = null) => {
@@ -135,11 +194,11 @@ export default function MenusPage() {
   };
 
   const getMenuBreadcrumb = (menuId) => {
-    let current = menus.find(m => m.id === menuId);
+    let current = allMenus.find(m => m.id === menuId);
     if (!current) return "";
     let path = current.name;
     while (current?.parent_id) {
-      current = menus.find(m => m.id === current.parent_id);
+      current = allMenus.find(m => m.id === current.parent_id);
       if (current) {
         path = `${current.name} > ${path}`;
       } else {
@@ -173,7 +232,8 @@ export default function MenusPage() {
       if (data.success) {
         showToast("Menu saved successfully!");
         setOpenUserModal(false);
-        fetchMenus();
+        fetchMenus(true);
+        fetchMenus(false);
       } else {
         showToast(data.message || "Failed to save menu", "error");
       }
@@ -189,7 +249,8 @@ export default function MenusPage() {
 
       if (data.success) {
         showToast("Menu deleted successfully!");
-        fetchMenus();
+        fetchMenus(true);
+        fetchMenus(false);
       } else {
         showToast(data.message || "Failed to delete menu", "error");
       }
@@ -211,14 +272,31 @@ export default function MenusPage() {
 
 
 
+  const filteredMenus = React.useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    return menus.filter(m => {
+      return (
+        m.name?.toLowerCase().includes(searchLower) ||
+        m.slug?.toLowerCase().includes(searchLower) ||
+        m.path?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [menus, searchTerm]);
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4" fontWeight="bold">Menus Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()} disabled={!canCreate}>
-          Add Menu
-        </Button>
-      </Box>
+      <PageHeader
+        title="Menus Management"
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+        addButtonLabel="Add Menu"
+
+        onAddClick={() => handleOpenUserModal()}
+        canCreate={canCreate}
+        searchPlaceholder="Search by name, slug or path..."
+        isSearching={isSearching}
+      />
+
 
       <TableContainer component={Paper} elevation={3}>
         <Table>
@@ -239,7 +317,8 @@ export default function MenusPage() {
                 <TableCell colSpan={7} align="center"><CircularProgress size={24} /></TableCell>
               </TableRow>
             ) : (
-              menus.map((m) => (
+              filteredMenus.map((m) => (
+
               <TableRow key={m.id} hover>
                 <TableCell>{m.name}</TableCell>
                 <TableCell>{m.slug}</TableCell>
@@ -265,6 +344,20 @@ export default function MenusPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={totalCount}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        sx={{ mt: 2 }}
+      />
 
       {/* Menu Form Modal */}
       <Dialog open={openUserModal} onClose={() => setOpenUserModal(false)} fullWidth maxWidth="sm">
@@ -301,9 +394,9 @@ export default function MenusPage() {
             fullWidth
             size="small"
             sx={{ mt: 1, mb: 1 }}
-            options={menus.filter(m => selectedMenu ? m.id !== selectedMenu.id : true)}
+            options={allMenus.filter(m => selectedMenu ? m.id !== selectedMenu.id : true)}
             getOptionLabel={(option) => getMenuBreadcrumb(option.id)}
-            value={menus.find(m => m.id === formData.parent_id) || null}
+            value={allMenus.find(m => m.id === formData.parent_id) || null}
             onChange={(e, newValue) => setFormData({ ...formData, parent_id: newValue ? newValue.id : "" })}
             isOptionEqualToValue={(option, value) => option.id === value?.id}
             renderInput={(params) => <TextField {...params} label="Parent Menu (Searchable)" margin="dense" />}

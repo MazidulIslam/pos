@@ -1,11 +1,51 @@
-const { Menu, Permission } = require('../../models');
+const { Menu, Permission, Sequelize } = require('../../models');
+const { Op } = Sequelize;
 
 exports.getMenus = async (req, res) => {
     try {
         const { User, Role } = require('../../models');
+        const isPaginated = req.query.paginate === 'true';
+        const search = req.query.search || "";
         
+        const where = { isActive: true };
+        if (search) {
+            where[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { slug: { [Op.iLike]: `%${search}%` } },
+                { path: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+
+        if (isPaginated) {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 5;
+            const offset = (page - 1) * limit;
+
+            const { count, rows: menus } = await Menu.findAndCountAll({
+                where,
+                distinct: true,
+                col: 'id',
+                include: [{ model: Permission, as: 'permissions', where: { isActive: true }, required: false }],
+                order: [['sortOrder', 'ASC']],
+                limit,
+                offset
+            });
+
+            return res.status(200).json({ 
+                success: true, 
+                data: menus,
+                meta: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit)
+                }
+            });
+        }
+
+        // Default: Full list for sidebar or non-paginated views
         const menus = await Menu.findAll({
-            where: { isActive: true },
+            where,
             include: [{ model: Permission, as: 'permissions', where: { isActive: true }, required: false }],
             order: [['sortOrder', 'ASC']]
         });

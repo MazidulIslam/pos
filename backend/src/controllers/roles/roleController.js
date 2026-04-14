@@ -1,12 +1,41 @@
-const { Role, Permission } = require('../../models');
+const { Role, Permission, Sequelize } = require('../../models');
+const { Op } = Sequelize;
 
 exports.getRoles = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || "";
+
+        const where = {};
+        if (search) {
+            where[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { description: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+
         // Use unscoped() to fetch both active and inactive (soft-deleted) roles
-        const roles = await Role.unscoped().findAll({
-            include: [{ model: Permission, as: 'permissions', through: { attributes: [] }, where: { isActive: true }, required: false }]
+        const { count, rows: roles } = await Role.unscoped().findAndCountAll({
+            where,
+            distinct: true,
+            include: [{ model: Permission, as: 'permissions', through: { attributes: [] }, where: { isActive: true }, required: false }],
+            order: [['id', 'DESC']],
+            limit,
+            offset
         });
-        return res.status(200).json({ success: true, data: roles });
+
+        return res.status(200).json({ 
+            success: true, 
+            data: roles,
+            meta: {
+                total: count,
+                page,
+                limit,
+                totalPages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }

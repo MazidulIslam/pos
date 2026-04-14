@@ -6,6 +6,8 @@ import { useSidebar } from "./SidebarContext";
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 260;
 
+import { Breadcrumbs } from "../common/Breadcrumbs";
+
 export const MainContent = ({ children }) => {
   const { isExpanded } = useSidebar();
 
@@ -20,6 +22,7 @@ export const MainContent = ({ children }) => {
         minHeight: `calc(100vh - var(--header-height))`,
       }}
     >
+      <Breadcrumbs />
       {children}
     </Box>
   );

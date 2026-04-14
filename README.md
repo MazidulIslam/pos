@@ -92,12 +92,15 @@ After running `npm run setup` (or once Docker starts for the first time), the fo
 ## 🌟 Key Features
 
 - **Advanced RBAC System**: Granular permission management where permissions are tied to menus and actions.
-- **Dynamic Menus**: Sidebars and navigation are driven entirely by database configurations, allowing for real-time UI updates without code changes.
-- **Direct Permission Overrides**: Administrators can assign specific permissions directly to a user, bypassing their standard role roles for fine-grained control.
-- **Soft-Delete Management**: The system uses an `isActive` flag for Roles, Users, and Menus. Inactive records are hidden from standard operations but can be restored by Super Admins.
-- **Super Admin Protection**: Built-in safeguards prevent the deletion or renaming of the core "Super Admin" role or the lockout of the primary administrative accounts.
-- **Secure Authentication**: JWT-based authentication with a secure token blacklisting system to invalidate sessions on logout.
-- **Database Backups**: Integrated tools to generate and manage system database exports directly from the settings panel.
+- **Recursive Hierarchical Sidebar**: Support for multi-level navigation (Parent > Child > Grandchild). Folders automatically inject "Overview" links for parent pages.
+- **Intelligent Breadcrumbs**: Automated, clickable navigation trails that update dynamically based on your location in the system.
+- **Hybrid Search Architecture**: A high-performance "Local-First" search matching strategy with automatic server-side fallback for large datasets.
+- **Optimized Server-side Pagination**: Standardized pagination (default 5 records) optimized for data-rich modules like Users, Roles, and Menus.
+- **Dynamic Menus**: Sidebars and navigation are driven entirely by database configurations, allowing for real-time UI updates.
+- **Direct Permission Overrides**: Assign specific permissions directly to a user, bypassing role standards for fine-grained control.
+- **Soft-Delete Management**: System-wide support for `isActive` flags. Inactive records are hidden but discoverable/restorable by Super Admins.
+- **Super Admin Protection**: Guardrails against deleting core roles or locking out administrative accounts.
+- **Database Backups**: Integrated tools to generate system exports directly from the settings panel.
 
 ---
 

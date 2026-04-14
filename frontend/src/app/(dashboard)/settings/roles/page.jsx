@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, IconButton, Dialog, DialogActions,
-  DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress, Switch
+  DialogContent, DialogTitle, TextField, Checkbox, FormControlLabel, FormGroup, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, CircularProgress, Switch, TablePagination
 } from "@mui/material";
 import { Add, Edit, Delete, Security, ExpandMore } from "@mui/icons-material";
 import config from "../../../../config";
@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
+import { PageHeader } from "../../../../components/common/PageHeader";
+
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -129,6 +131,13 @@ export default function RolesPage() {
   
   const [formData, setFormData] = useState({ name: "", description: "", isActive: true });
   const [selectedPerms, setSelectedPerms] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+
+
 
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
@@ -136,19 +145,61 @@ export default function RolesPage() {
   const handleCloseToast = () => setToast({ ...toast, open: false });
 
   useEffect(() => {
-    Promise.all([fetchRoles(), fetchMenus()]).finally(() => setLoading(false));
+    fetchMenus();
+  }, []);
+
+  const prevPage = useRef(page);
+  const prevRows = useRef(rowsPerPage);
+
+  useEffect(() => {
+    // 1. Force fetch if page or rowsPerPage changed
+    const isPaginationChange = page !== prevPage.current || rowsPerPage !== prevRows.current;
+    prevPage.current = page;
+    prevRows.current = rowsPerPage;
+
+    if (isPaginationChange || searchTerm === "") {
+        fetchRoles();
+    } else {
+        // Hybrid logic for search: check local matches
+        const searchLower = searchTerm.toLowerCase();
+        const hasLocalMatches = roles.some(r => 
+          r.name?.toLowerCase().includes(searchLower) ||
+          r.description?.toLowerCase().includes(searchLower)
+        );
+
+        if (!hasLocalMatches) {
+            fetchRoles();
+        }
+    }
+  }, [page, rowsPerPage, searchTerm]);
+
+  const handleSearchChange = useCallback((val) => {
+    setSearchTerm(val);
+    setPage(0);
   }, []);
 
   const fetchRoles = async () => {
+    setLoading(true);
+    setIsSearching(true);
     try {
-      const data = await api.get("/roles");
+      const data = await api.get("/roles", {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchTerm
+        }
+      });
       if (data.success) {
         setRoles(data.data);
+        setTotalCount(data.meta.total);
       } else {
         showToast(data.message || "Failed to fetch roles", "error");
       }
     } catch (err) { 
-      showToast(err.message || "Network error fetching roles", "error");
+        showToast(err.message || "Network error fetching roles", "error");
+    } finally {
+        setLoading(false);
+        setIsSearching(false);
     }
   };
 
@@ -289,14 +340,30 @@ export default function RolesPage() {
     }
   };
 
+  const filteredRoles = React.useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    return roles.filter(r => {
+      return (
+        r.name?.toLowerCase().includes(searchLower) ||
+        r.description?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [roles, searchTerm]);
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4" fontWeight="bold">Roles Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenRoleModal()} disabled={!canCreate}>
-          Add Role
-        </Button>
-      </Box>
+      <PageHeader
+        title="Roles Management"
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+        addButtonLabel="Add Role"
+
+        onAddClick={() => handleOpenRoleModal()}
+        canCreate={canCreate}
+        searchPlaceholder="Search by role name or description..."
+        isSearching={isSearching}
+      />
+
 
       <TableContainer component={Paper} elevation={3}>
         <Table>
@@ -315,7 +382,8 @@ export default function RolesPage() {
                 <TableCell colSpan={4} align="center"><CircularProgress size={24} /></TableCell>
               </TableRow>
             ) : (
-              roles.map((r) => (
+              filteredRoles.map((r) => (
+
               <TableRow key={r.id} hover>
                 <TableCell>{r.name}</TableCell>
                 <TableCell>{r.description}</TableCell>
@@ -342,6 +410,20 @@ export default function RolesPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={totalCount}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        sx={{ mt: 2 }}
+      />
 
       {/* Role Form */}
       <Dialog open={openRoleModal} onClose={() => setOpenRoleModal(false)} fullWidth maxWidth="sm">

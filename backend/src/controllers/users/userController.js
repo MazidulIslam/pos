@@ -3,9 +3,28 @@ const userService = require("../../services/users/userService");
 class UserController {
     async getAllUsers(req, res) {
         try {
-            const { User, Role, Permission } = require('../../models');
+            const { User, Role, Permission, Sequelize } = require('../../models');
+            const { Op } = Sequelize;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 5;
+            const offset = (page - 1) * limit;
+            const search = req.query.search || "";
+
+            const where = {};
+            if (search) {
+                where[Op.or] = [
+                    { username: { [Op.iLike]: `%${search}%` } },
+                    { email: { [Op.iLike]: `%${search}%` } },
+                    { firstName: { [Op.iLike]: `%${search}%` } },
+                    { lastName: { [Op.iLike]: `%${search}%` } },
+                    { phone: { [Op.iLike]: `%${search}%` } }
+                ];
+            }
+
             // Use unscoped() to fetch both active and inactive (soft-deleted) users
-            const users = await User.unscoped().findAll({
+            const { count, rows: users } = await User.unscoped().findAndCountAll({
+                where,
+                distinct: true,
                 attributes: ['id', 'username', 'email', 'firstName', 'lastName', 'phone', 'roleId', 'isActive'],
                 include: [
                     { 
@@ -15,9 +34,21 @@ class UserController {
                     },
                     { model: Permission, as: 'directPermissions', through: { attributes: [] }, where: { isActive: true }, required: false }
                 ],
-                order: [['createdAt', 'DESC']]
+                order: [['id', 'DESC']],
+                limit,
+                offset
             });
-            return res.status(200).json({ success: true, data: users });
+
+            return res.status(200).json({ 
+                success: true, 
+                data: users,
+                meta: {
+                    total: count,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(count / limit)
+                }
+            });
         } catch (error) {
             return res.status(500).json({ success: false, message: error.message });
         }

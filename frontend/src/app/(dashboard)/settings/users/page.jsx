@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, IconButton, Dialog, DialogActions,
   DialogContent, DialogTitle, FormControl, InputLabel, Select, MenuItem,
   Accordion, AccordionSummary, AccordionDetails, FormGroup, FormControlLabel, Checkbox, Chip, TextField,
-  Snackbar, Alert, CircularProgress, Switch
+  Snackbar, Alert, CircularProgress, Switch, TablePagination
 } from "@mui/material";
 import { Edit, Security, ExpandMore, Add, Visibility, Delete } from "@mui/icons-material";
 import config from "../../../../config";
@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
+import { PageHeader } from "../../../../components/common/PageHeader";
+
 
 
 const MenuNode = ({ menu, selectedPerms, handleTogglePerm, handleToggleMenuAll }) => {
@@ -134,6 +136,13 @@ export default function UsersPage() {
   const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [selectedPerms, setSelectedPerms] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [isSearching, setIsSearching] = useState(false);
+
 
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
@@ -141,20 +150,66 @@ export default function UsersPage() {
   const handleCloseToast = () => setToast({ ...toast, open: false });
 
   useEffect(() => {
-    Promise.all([fetchUsers(), fetchRoles(), fetchMenus()]).finally(() => setLoading(false));
+    fetchRoles();
+    fetchMenus();
+  }, []);
+
+  const prevPage = useRef(page);
+  const prevRows = useRef(rowsPerPage);
+
+  useEffect(() => {
+    // 1. Force fetch if page or rowsPerPage changed
+    const isPaginationChange = page !== prevPage.current || rowsPerPage !== prevRows.current;
+    prevPage.current = page;
+    prevRows.current = rowsPerPage;
+
+    if (isPaginationChange || searchTerm === "") {
+        fetchUsers();
+    } else {
+        // Hybrid logic for search: check local matches
+        const searchLower = searchTerm.toLowerCase();
+        const hasLocalMatches = users.some(u => 
+            u.username?.toLowerCase().includes(searchLower) ||
+            u.email?.toLowerCase().includes(searchLower) ||
+            u.firstName?.toLowerCase().includes(searchLower) ||
+            u.lastName?.toLowerCase().includes(searchLower) ||
+            u.role?.name?.toLowerCase().includes(searchLower)
+        );
+
+        if (!hasLocalMatches) {
+            fetchUsers();
+        }
+    }
+  }, [page, rowsPerPage, searchTerm]);
+
+  const handleSearchChange = useCallback((val) => {
+    setSearchTerm(val);
+    setPage(0);
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
+    setIsSearching(true);
     try {
-      const data = await api.get("/users");
+      const data = await api.get("/users", {
+        params: {
+          page: page + 1,
+          limit: rowsPerPage,
+          search: searchTerm
+        }
+      });
       if (data.success) {
         setUsers(data.data);
+        setTotalCount(data.meta.total);
       } else {
         showToast(data.message || "Failed to fetch users", "error");
       }
     } catch (err) { 
         console.error(err); 
         showToast(err.message || "Network error fetching users", "error");
+    } finally {
+        setLoading(false);
+        setIsSearching(false);
     }
   };
 
@@ -326,14 +381,34 @@ export default function UsersPage() {
     }
   };
 
+  const filteredUsers = React.useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    return users.filter(u => {
+      return (
+        u.username?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower) ||
+        u.firstName?.toLowerCase().includes(searchLower) ||
+        u.lastName?.toLowerCase().includes(searchLower) ||
+        u.role?.name?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [users, searchTerm]);
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" mb={3}>
-        <Typography variant="h4" fontWeight="bold">Users Management</Typography>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenUserModal()} disabled={!canCreate}>
-          Add User
-        </Button>
-      </Box>
+      <PageHeader
+        title="Users Management"
+        searchTerm={searchTerm}
+        onSearchChange={handleSearchChange}
+        addButtonLabel="Add User"
+
+
+        onAddClick={() => handleOpenUserModal()}
+        canCreate={canCreate}
+        searchPlaceholder="Search by name, email, or role..."
+        isSearching={isSearching}
+      />
+
 
       <TableContainer component={Paper} elevation={3}>
         <Table>
@@ -354,7 +429,8 @@ export default function UsersPage() {
                 <TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell>
               </TableRow>
             ) : (
-              users.map((u) => (
+              filteredUsers.map((u) => (
+
               <TableRow key={u.id} hover>
                 <TableCell>{u.firstName} {u.lastName}</TableCell>
                 <TableCell>{u.email}</TableCell>
@@ -386,6 +462,20 @@ export default function UsersPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={totalCount}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        sx={{ mt: 2 }}
+      />
 
 
 

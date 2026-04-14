@@ -33,6 +33,21 @@ async function setup() {
                 permissions: ['list']
             },
             {
+                name: 'Reports', slug: 'reports', path: '/reports', icon: 'BarChart', sortOrder: 50,
+                permissions: ['list'],
+                children: [
+                    {
+                        name: 'Sales', slug: 'sales-reports', path: '/reports/sales', icon: 'ShowChart', sortOrder: 1,
+                        permissions: ['list'],
+                        children: [
+                            { name: 'Monthly Analysis', slug: 'monthly-sales', path: '/reports/sales/monthly', icon: 'PointOfSale', sortOrder: 1 },
+                            { name: 'Annual Recap', slug: 'annual-sales', path: '/reports/sales/annual', icon: 'Visibility', sortOrder: 2 },
+                        ]
+                    },
+                    { name: 'Inventory Logs', slug: 'inv-logs', path: '/reports/inventory', icon: 'Inventory', sortOrder: 2 },
+                ]
+            },
+            {
                 name: 'Settings', slug: 'settings', path: '/settings', icon: 'Settings', sortOrder: 1000,
                 permissions: ['list'],
                 children: [
