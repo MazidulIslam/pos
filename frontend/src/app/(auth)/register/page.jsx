@@ -96,13 +96,13 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         username: formData.username,
         email: formData.email,
-        password: formData.password,
+        password: formData.password
       };
 
       await api.post("/auth/register", payload);
 
       // Registration success, redirect to login
-      router.push("/login");
+      router.push("/login?registered=true");
     } catch (err) {
       const message = err.response?.data?.message || err.message || "An unexpected error occurred during registration.";
       setErrorMsg(message);
@@ -190,7 +190,7 @@ export default function RegisterPage() {
                     fontWeight={800}
                     letterSpacing="-0.03em"
                   >
-                    ModernPOS
+                    ProntoStack
                   </Typography>
                 </Stack>
 
@@ -204,7 +204,7 @@ export default function RegisterPage() {
                       mb: 2,
                     }}
                   >
-                    Build your next retail workflow from one place.
+                    Join the future of retail management.
                   </Typography>
                   <Typography
                     variant="body1"
@@ -215,9 +215,9 @@ export default function RegisterPage() {
                       mb: 4,
                     }}
                   >
-                    Create your account and get a polished POS dashboard with
-                    store, sales, customer, and reporting workflows ready to
-                    scale.
+                    Register your account to access our secure POS platform. 
+                    Once confirmed, your administrator can grant you access 
+                    to specialized workspaces.
                   </Typography>
 
                   <Stack spacing={2.2}>
@@ -323,7 +323,7 @@ export default function RegisterPage() {
                       <Store size={20} />
                     </Box>
                     <Typography variant="h6" fontWeight={800}>
-                      ModernPOS
+                      ProntoStack
                     </Typography>
                   </Stack>
 
@@ -338,8 +338,7 @@ export default function RegisterPage() {
                     Create your account
                   </Typography>
                   <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                    Start managing products, customers, and sales with a modern
-                    POS experience.
+                    Enter your details to create a system identity.
                   </Typography>
                 </Box>
 
@@ -379,15 +378,16 @@ export default function RegisterPage() {
                     </Grid>
                   </Grid>
 
-                  <TextField
-                    fullWidth
-                    label="Username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    placeholder="modern_pos_admin"
-                    variant="outlined"
-                  />
+                    <TextField
+                      fullWidth
+                      label="Username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="admin_user"
+                      variant="outlined"
+                      required
+                    />
 
                   <TextField
                     fullWidth
@@ -481,41 +481,6 @@ export default function RegisterPage() {
                     {isLoading ? "Creating account..." : "Create account"}
                   </Button>
                 </Stack>
-
-                <Box
-                  sx={{
-                    p: 2.25,
-                    borderRadius: 3,
-                    bgcolor: "rgba(79,70,229,0.05)",
-                    border: "1px solid rgba(79,70,229,0.12)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.25} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 2.5,
-                        bgcolor: "rgba(79,70,229,0.12)",
-                        color: "primary.main",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <UserPlus size={18} />
-                    </Box>
-                    <Box>
-                      <Typography fontWeight={700} mb={0.25}>
-                        New workspace setup
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        After signup, you can configure store details, add
-                        products, and invite staff members.
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
 
                 <Typography
                   variant="body2"

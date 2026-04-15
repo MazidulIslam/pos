@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { Check } from "lucide-react";
 import { useThemeSettings } from "@/context/ThemeContext";
-import { PageHeader } from "@/components/common/PageHeader";
+import PageHeader from "@/components/common/PageHeader";
 
 const THEME_COLORS = [
     { name: "Indigo", hex: "#4f46e5", label: "Professional" },

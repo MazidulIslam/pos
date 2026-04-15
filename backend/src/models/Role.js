@@ -65,10 +65,16 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Role.associate = (models) => {
-    // A role can belong to many users
+    // A role can belong to many users (Global or Org specific)
     if (models.User) {
       Role.hasMany(models.User, { foreignKey: "roleId", as: "users" });
     }
+    
+    // A role belongs to an organization
+    if (models.Organization) {
+      Role.belongsTo(models.Organization, { foreignKey: "organization_id", as: "organization" });
+    }
+
     if (models.Permission) {
       Role.belongsToMany(models.Permission, {
           through: models.RolePermission,

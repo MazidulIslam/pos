@@ -29,6 +29,13 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=password
       - DB_NAME=pos_db
+      - JWT_SECRET=your_secure_jwt_secret_here
+      # SMTP Configuration
+      - SMTP_USER=your-email@gmail.com
+      - SMTP_PASS=your-google-app-password
+      - FRONTEND_URL=http://localhost:3001
+      # License Configuration (Optional initial key)
+      - LICENSE_KEY=
     depends_on:
       - db
 

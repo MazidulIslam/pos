@@ -37,7 +37,7 @@ export default function Home() {
             Dashboard Overview
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Welcome back, here's what's happening with your POS system today.
+            Welcome back, here's what's happening with your workspace today.
           </Typography>
         </Box>
         <Button
@@ -51,7 +51,7 @@ export default function Home() {
             boxShadow: '0 10px 15px -3px rgb(79 70 229 / 0.2)',
           }}
         >
-          Create New Sale
+          Invite Member
         </Button>
       </Box>
 

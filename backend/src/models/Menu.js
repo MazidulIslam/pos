@@ -79,6 +79,10 @@ module.exports = (sequelize, DataTypes) => {
         Menu.belongsTo(models.Menu, { foreignKey: "parent_id", as: "parent" });
         Menu.hasMany(models.Menu, { foreignKey: "parent_id", as: "children" });
         
+        if (models.Organization) {
+            Menu.belongsTo(models.Organization, { foreignKey: "organization_id", as: "organization" });
+        }
+
         if (models.User) {
             Menu.belongsTo(models.User, { foreignKey: "createdBy", as: "creator" });
             Menu.belongsTo(models.User, { foreignKey: "updatedBy", as: "updater" });

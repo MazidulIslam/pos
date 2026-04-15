@@ -5,7 +5,9 @@ const {
     User,
     Menu,
     Permission,
-    RolePermission
+    RolePermission,
+    Organization,
+    OrganizationMember
 } = require('../models');
 
 async function setup() {
@@ -16,7 +18,19 @@ async function setup() {
         console.log('Syncing database schema...');
         await sequelize.sync({ alter: true });
 
-        // 2. Create Super Admin Role
+        // 2. Create Default Master Organization
+        console.log('Ensuring Master Organization exists...');
+        const [masterOrg] = await Organization.findOrCreate({
+            where: { subdomain: 'master' },
+            defaults: {
+                name: 'ProntoStack Master',
+                subdomain: 'master',
+                status: 'Active',
+                isActive: true
+            }
+        });
+
+        // 3. Create Super Admin Role
         console.log('Ensuring Super Admin role exists...');
         const [superAdminRole] = await Role.findOrCreate({
             where: { name: 'Super Admin' },
@@ -26,11 +40,19 @@ async function setup() {
             }
         });
 
-        // 3. Define Menus and their Permissions
+        // 4. Define Menus and their Permissions
         const menuData = [
             {
                 name: 'Dashboard', slug: 'dashboard', path: '/', icon: 'Dashboard', sortOrder: 1,
                 permissions: ['list']
+            },
+            {
+                name: 'Platform Admin', slug: 'platform-admin', path: '/admin', icon: 'Shield', sortOrder: 5,
+                permissions: ['list'],
+                children: [
+                    { name: 'Organizations', slug: 'admin-organizations', path: '/admin/organizations', icon: 'Business', sortOrder: 1, permissions: ['list', 'update'] },
+                    { name: 'Global Stats', slug: 'admin-stats', path: '/admin/stats', icon: 'BarChart', sortOrder: 2, permissions: ['list'] },
+                ]
             },
             {
                 name: 'Reports', slug: 'reports', path: '/reports', icon: 'BarChart', sortOrder: 50,
@@ -59,8 +81,12 @@ async function setup() {
                     { name: 'Roles', slug: 'roles', path: '/settings/roles', icon: 'ManageAccounts', sortOrder: 2 },
                     { name: 'Menus', slug: 'menus', path: '/settings/menus', icon: 'Menu', sortOrder: 3 },
                     { name: 'Appearance', slug: 'appearance', path: '/settings/appearance', icon: 'Palette', sortOrder: 4 },
+                    { 
+                        name: 'System License', slug: 'system-license', path: '/settings/license', icon: 'Lock', sortOrder: 5,
+                        permissions: ['list', 'update']
+                    },
                     {
-                        name: 'Backups', slug: 'backups', path: '/settings/backups', icon: 'Backup', sortOrder: 5,
+                        name: 'Backups', slug: 'backups', path: '/settings/backups', icon: 'Backup', sortOrder: 6,
                         permissions: ['list', 'generate']
                     },
                     {
@@ -146,7 +172,7 @@ async function setup() {
             await processMenu(m);
         }
 
-        // 4. Assign All Permissions to Super Admin
+        // 5. Assign All Permissions to Super Admin
         console.log('Assigning all permissions to Super Admin...');
         const allPermissions = await Permission.findAll();
         for (const perm of allPermissions) {
@@ -155,13 +181,14 @@ async function setup() {
             });
         }
 
-        // 5. Create Initial Super Admin User
-        console.log('Checking for existing users...');
-        const userCount = await User.count();
-        if (userCount === 0) {
+        // 6. Create Initial Super Admin User
+        console.log('Checking for Super Admin user...');
+        let adminUser = await User.findOne({ where: { email: 'admin@example.com' } });
+        
+        if (!adminUser) {
             console.log('Creating initial Super Admin user (admin@example.com)...');
             const hashedPassword = await bcrypt.hash('admin123', 10);
-            await User.create({
+            adminUser = await User.create({
                 username: 'admin',
                 email: 'admin@example.com',
                 password: hashedPassword,
@@ -172,8 +199,21 @@ async function setup() {
             });
             console.log('IMPORTANT: Default credentials are admin@example.com / admin123');
         } else {
-            console.log('Users already exist, skipping initial user creation.');
+            console.log('Super Admin user already exists.');
         }
+
+        // 7. Ensure Membership
+        console.log('Linking Super Admin to Master Organization...');
+        await OrganizationMember.findOrCreate({
+            where: { 
+                user_id: adminUser.id, 
+                organization_id: masterOrg.id 
+            },
+            defaults: {
+                role_id: superAdminRole.id,
+                isActive: true
+            }
+        });
 
         console.log('--- Setup Completed Successfully ---');
         process.exit(0);

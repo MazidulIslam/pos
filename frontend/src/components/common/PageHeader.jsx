@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Button, TextField, InputAdornment, CircularProgress } from "@mui/material";
+import { Box, Typography, Button, TextField, InputAdornment, CircularProgress, Stack, Avatar } from "@mui/material";
 import { Search, Plus } from "lucide-react";
 
-export const PageHeader = ({ 
+const PageHeader = ({ 
   title, 
+  subtitle,
+  icon,
   searchTerm, 
   onSearchChange, 
   addButtonLabel, 
@@ -15,22 +17,21 @@ export const PageHeader = ({
   extraActions,
   isSearching = false
 }) => {
-  const [localSearch, setLocalSearch] = useState(searchTerm);
+  const [localSearch, setLocalSearch] = useState(searchTerm || "");
 
   // Debounce the search change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (typeof onSearchChange === "function") {
+    if (onSearchChange) {
+      const timer = setTimeout(() => {
         onSearchChange(localSearch);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
   }, [localSearch, onSearchChange]);
 
-  // Sync with prop if changed externally (e.g. cleared)
+  // Sync with prop if changed externally
   useEffect(() => {
-    setLocalSearch(searchTerm);
+    setLocalSearch(searchTerm || "");
   }, [searchTerm]);
 
   return (
@@ -40,21 +41,43 @@ export const PageHeader = ({
         flexDirection: { xs: "column", md: "row" }, 
         justifyContent: "space-between", 
         alignItems: { xs: "stretch", md: "center" }, 
-        gap: 2,
+        gap: 3,
         mb: 4 
       }}
     >
-      <Box>
-        <Typography 
-          variant="h4" 
-          sx={{ 
-            fontWeight: 800, 
-            letterSpacing: "-0.02em",
-            color: "text.primary"
-          }}
-        >
-          {title}
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+        {icon && (
+          <Avatar 
+            sx={{ 
+              bgcolor: 'rgba(79,70,229,0.1)', 
+              color: 'primary.main',
+              width: 52,
+              height: 52,
+              borderRadius: 3,
+              boxShadow: '0 4px 12px rgba(79,70,229,0.08)'
+            }}
+          >
+            {icon}
+          </Avatar>
+        )}
+        <Box>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 800, 
+              letterSpacing: "-0.03em",
+              color: "text.primary",
+              lineHeight: 1.2
+            }}
+          >
+            {title}
+          </Typography>
+          {subtitle && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 500 }}>
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
       </Box>
 
       <Box 
@@ -65,39 +88,41 @@ export const PageHeader = ({
           gap: 2 
         }}
       >
-        <TextField
-          size="small"
-          placeholder={searchPlaceholder}
-          value={localSearch}
-          onChange={(e) => setLocalSearch(e.target.value)}
-          sx={{ 
-            minWidth: { sm: 300 },
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 3,
-              bgcolor: "background.paper",
-              "& fieldset": {
-                borderColor: "var(--border)",
-              },
-              "&:hover fieldset": {
-                borderColor: "primary.main",
-              },
-            }
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} color="var(--text-secondary)" />
-              </InputAdornment>
-            ),
-            endAdornment: isSearching && (
-              <InputAdornment position="end">
-                <CircularProgress size={16} color="inherit" />
-              </InputAdornment>
-            )
-          }}
-        />
+        {onSearchChange && (
+          <TextField
+            size="small"
+            placeholder={searchPlaceholder}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            sx={{ 
+              minWidth: { sm: 320 },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                bgcolor: "white",
+                "& fieldset": {
+                  borderColor: "rgba(0,0,0,0.08)",
+                },
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={18} color="#64748b" />
+                </InputAdornment>
+              ),
+              endAdornment: isSearching && (
+                <InputAdornment position="end">
+                  <CircularProgress size={16} color="inherit" />
+                </InputAdornment>
+              )
+            }}
+          />
+        )}
 
-        <Box sx={{ display: "flex", gap: 1, width: { xs: "100%", sm: "auto" } }}>
+        <Box sx={{ display: "flex", gap: 1.5, width: { xs: "100%", sm: "auto" } }}>
           {extraActions}
           {addButtonLabel && (
             <Button
@@ -107,14 +132,15 @@ export const PageHeader = ({
               disabled={!canCreate}
               fullWidth
               sx={{
-                borderRadius: 3,
-                py: 1,
+                borderRadius: 2.5,
+                py: 1.25,
                 px: 3,
                 fontWeight: 700,
                 textTransform: "none",
-                boxShadow: "0 8px 16px -4px rgba(79, 70, 229, 0.25)",
+                fontSize: 14,
+                boxShadow: "0 8px 20px -4px rgba(79, 70, 229, 0.28)",
                 "&:hover": {
-                  boxShadow: "0 12px 20px -4px rgba(79, 70, 229, 0.35)",
+                  boxShadow: "0 12px 24px -4px rgba(79, 70, 229, 0.38)",
                 }
               }}
             >
@@ -126,3 +152,5 @@ export const PageHeader = ({
     </Box>
   );
 };
+
+export default PageHeader;

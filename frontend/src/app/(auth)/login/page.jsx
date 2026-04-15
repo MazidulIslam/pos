@@ -30,6 +30,9 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [loginStep, setLoginStep] = useState("credentials"); // 'credentials' or 'select-org'
+  const [orgList, setOrgList] = useState([]);
+  const [tempUser, setTempUser] = useState(null);
   const router = useRouter();
 
   React.useEffect(() => {
@@ -64,28 +67,57 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const data = await api.post("/auth/login", formData);
+      const resp = await api.post("/auth/login", formData);
+      const { user, organizations } = resp.data;
 
-      // Store token (in a real app, use secure cookies or more robust state management)
-      localStorage.setItem("token", data.data.token);
-      localStorage.setItem("user", JSON.stringify(data.data.user));
-      localStorage.setItem("menus", JSON.stringify(data.data.menus));
-      localStorage.setItem("permissions", JSON.stringify(data.data.permissions));
+      if (!organizations || organizations.length === 0) {
+          throw new Error("You are not associated with any active organizations. Please contact support.");
+      }
+
+      setTempUser(user);
+      setOrgList(organizations);
+      localStorage.setItem("user_organizations", JSON.stringify(organizations));
+      setLoginStep("select-org");
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", formData.email);
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-
-      // Redirect to dashboard
-      router.push("/");
     } catch (err) {
       const message = err.response?.data?.message || err.message || "An unexpected error occurred during login.";
       setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelectOrg = async (orgId) => {
+      setIsLoading(true);
+      setErrorMsg("");
+      try {
+          const resp = await api.post("/auth/select-org", {
+              userId: tempUser.id,
+              organizationId: orgId
+          });
+
+          const { token, user, menus, permissions, activeOrg } = resp.data;
+
+          // Store final session data
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("active_organization", JSON.stringify(activeOrg));
+          localStorage.setItem("menus", JSON.stringify(menus));
+          localStorage.setItem("permissions", JSON.stringify(permissions));
+
+          // Redirect to dashboard
+          router.push("/");
+      } catch (err) {
+          const message = err.response?.data?.message || err.message || "Could not access organization.";
+          setErrorMsg(message);
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   return (
@@ -131,7 +163,7 @@ export default function LoginPage() {
           <Box>
             <Chip
               icon={<ShieldCheck size={16} />}
-              label="Modern POS Platform"
+              label="ProntoStack Platform"
               sx={{
                 bgcolor: "rgba(255,255,255,0.14)",
                 color: "white",
@@ -144,14 +176,14 @@ export default function LoginPage() {
             <Typography
               variant="h2"
               sx={{
-                fontSize: { lg: "3rem", xl: "3.5rem" },
+                fontSize: { lg: "3.2rem", xl: "3.8rem" },
                 fontWeight: 800,
                 lineHeight: 1.05,
                 letterSpacing: "-0.04em",
                 maxWidth: 520,
               }}
             >
-              Run your store smarter with one beautiful POS dashboard.
+              One platform, multiple stores. Fast and professional.
             </Typography>
 
             <Typography
@@ -164,8 +196,8 @@ export default function LoginPage() {
                 lineHeight: 1.7,
               }}
             >
-              Sign in to manage products, customers, sales, and reports with a
-              fast and modern workflow built for growing retail businesses.
+              ProntoStack allows you to manage multiple organizations under one account.
+              Switch between workspaces seamlessly with built-in RBAC and multi-tenant security.
             </Typography>
 
             <Stack spacing={1.5} sx={{ mt: 4 }}>
@@ -222,8 +254,7 @@ export default function LoginPage() {
             </Box>
 
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)" }}>
-              “A cleaner workflow for billing, stock tracking, and customer
-              management — all in one place.”
+              “Switch between your business branches instantly. RBAC control ensures your staff only sees what they need.”
             </Typography>
           </Box>
         </Box>
@@ -251,162 +282,219 @@ export default function LoginPage() {
           }}
         >
           <CardContent sx={{ p: { xs: 3, sm: 4.5 } }}>
-            <Box sx={{ display: { xs: "block", lg: "none" }, mb: 3 }}>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 800, letterSpacing: "-0.03em" }}
-              >
-                Welcome back
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Sign in to access your POS workspace.
-              </Typography>
-            </Box>
+            {loginStep === "credentials" ? (
+              <>
+                <Box sx={{ mb: 4 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 800, letterSpacing: "-0.03em" }}
+                  >
+                    Welcome back
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Sign in to access your ProntoStack workspaces.
+                  </Typography>
+                </Box>
 
-            <Box sx={{ display: { xs: "none", lg: "block" }, mb: 4 }}>
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 800, letterSpacing: "-0.03em" }}
-              >
-                Sign in
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Enter your credentials to continue to your dashboard.
-              </Typography>
-            </Box>
+                {errorMsg && (
+                  <Box sx={{ mb: 3, p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2, border: "1px solid #f87171" }}>
+                    <Typography variant="body2" fontWeight={600}>{errorMsg}</Typography>
+                  </Box>
+                )}
 
-            {errorMsg && (
-              <Box sx={{ mb: 3, p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2, border: "1px solid #f87171" }}>
-                <Typography variant="body2" fontWeight={600}>{errorMsg}</Typography>
-              </Box>
+                <Stack
+                  component="form"
+                  spacing={2.25}
+                  onSubmit={handleLogin}
+                >
+                  <TextField
+                    fullWidth
+                    label="Email address"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Mail size={18} color="#64748b" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Lock size={18} color="#64748b" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            edge="end"
+                            aria-label="toggle password visibility"
+                          >
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" color="text.secondary">
+                          Remember me
+                        </Typography>
+                      }
+                    />
+
+                    <Link
+                      href="/forgot-password"
+                      style={{
+                        color: "#4f46e5",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                        fontSize: 14,
+                      }}
+                    >
+                      Forgot password?
+                    </Link>
+                  </Box>
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={isLoading}
+                    endIcon={<ArrowRight size={18} />}
+                    sx={{
+                      mt: 1,
+                      py: 1.5,
+                      borderRadius: 3,
+                      fontWeight: 700,
+                      textTransform: "none",
+                      fontSize: 15,
+                      boxShadow: "0 12px 24px rgba(79,70,229,0.24)",
+                    }}
+                  >
+                    {isLoading ? "Validating..." : "Sign in to account"}
+                  </Button>
+                </Stack>
+              </>
+            ) : (
+              <>
+                <Box sx={{ mb: 4 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: 800, letterSpacing: "-0.03em" }}
+                  >
+                    Select Organization
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    You belong to multiple workspaces. Please select one to enter.
+                  </Typography>
+                </Box>
+
+                {errorMsg && (
+                  <Box sx={{ mb: 3, p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2 }}>
+                    <Typography variant="body2" fontWeight={600}>{errorMsg}</Typography>
+                  </Box>
+                )}
+
+                <Stack spacing={2}>
+                  {orgList.map((org) => (
+                    <Button
+                      key={org.id}
+                      fullWidth
+                      onClick={() => handleSelectOrg(org.id)}
+                      disabled={isLoading}
+                      sx={{
+                        p: 2.5,
+                        justifyContent: "space-between",
+                        borderRadius: 3,
+                        border: "1px solid #e2e8f0",
+                        bgcolor: "white",
+                        color: "text.primary",
+                        transition: "all 0.2s",
+                        "&:hover": {
+                          borderColor: "#4f46e5",
+                          bgcolor: "rgba(79,70,229,0.04)",
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                        },
+                      }}
+                      endIcon={<ArrowRight size={20} color="#4f46e5" />}
+                    >
+                      <Box sx={{ textAlign: "left" }}>
+                        <Typography fontWeight={700} sx={{ fontSize: 16 }}>
+                          {org.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {org.subdomain}.prontostack.com
+                        </Typography>
+                      </Box>
+                    </Button>
+                  ))}
+
+                  <Button
+                    fullWidth
+                    variant="text"
+                    onClick={() => setLoginStep("credentials")}
+                    sx={{ mt: 2, color: "text.secondary", textTransform: "none" }}
+                  >
+                    ← Back to login
+                  </Button>
+                </Stack>
+              </>
             )}
 
-            <Stack
-              component="form"
-              spacing={2.25}
-              onSubmit={handleLogin}
-            >
-              <TextField
-                fullWidth
-                label="Email address"
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Mail size={18} color="#64748b" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <TextField
-                fullWidth
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Lock size={18} color="#64748b" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        edge="end"
-                        aria-label="toggle password visibility"
-                      >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: { xs: "flex-start", sm: "center" },
-                  justifyContent: "space-between",
-                  flexDirection: { xs: "column", sm: "row" },
-                  gap: 1,
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                    />
-                  }
-                  label={
-                    <Typography component="span" variant="body2" color="text.secondary">
-                      Remember me
-                    </Typography>
-                  }
-                />
-
-                <Link
-                  href="/register"
-                  style={{
-                    color: "#4f46e5",
-                    textDecoration: "none",
-                    fontWeight: 600,
-                    fontSize: 14,
-                  }}
+            {loginStep === "credentials" && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 3.5, textAlign: "center" }}
                 >
-                  Forgot password?
-                </Link>
-              </Box>
-
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={isLoading}
-                endIcon={<ArrowRight size={18} />}
-                sx={{
-                  mt: 1,
-                  py: 1.5,
-                  borderRadius: 3,
-                  fontWeight: 700,
-                  textTransform: "none",
-                  fontSize: 15,
-                  boxShadow: "0 12px 24px rgba(79,70,229,0.24)",
-                }}
-              >
-                {isLoading ? "Signing in..." : "Sign in to dashboard"}
-              </Button>
-            </Stack>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 3.5, textAlign: "center" }}
-            >
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                style={{
-                  color: "#4f46e5",
-                  textDecoration: "none",
-                  fontWeight: 700,
-                }}
-              >
-                Create one
-              </Link>
-            </Typography>
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    href="/register"
+                    style={{
+                      color: "#4f46e5",
+                      textDecoration: "none",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Create one
+                  </Link>
+                </Typography>
+            )}
           </CardContent>
         </Card>
       </Box>

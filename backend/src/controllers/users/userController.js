@@ -3,7 +3,7 @@ const userService = require("../../services/users/userService");
 class UserController {
     async getAllUsers(req, res) {
         try {
-            const { User, Role, Permission, Sequelize } = require('../../models');
+            const { User, Role, Permission, Sequelize, OrganizationMember, Organization } = require('../../models');
             const { Op } = Sequelize;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 5;
@@ -30,9 +30,23 @@ class UserController {
                     { 
                         model: Role, 
                         as: 'role',
-                        include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }]
+                        required: false
                     },
-                    { model: Permission, as: 'directPermissions', through: { attributes: [] }, where: { isActive: true }, required: false }
+                    { 
+                        model: Permission, 
+                        as: 'directPermissions', 
+                        through: { attributes: [] }, 
+                        required: false 
+                    },
+                    {
+                        model: OrganizationMember,
+                        as: 'memberships',
+                        required: false,
+                        include: [
+                            { model: Organization, as: 'organization', attributes: ['id', 'name'], required: false },
+                            { model: Role, as: 'role', attributes: ['id', 'name'], required: false }
+                        ]
+                    }
                 ],
                 order: [['id', 'DESC']],
                 limit,
@@ -50,6 +64,7 @@ class UserController {
                 }
             });
         } catch (error) {
+            console.error("fetch users error:", error);
             return res.status(500).json({ success: false, message: error.message });
         }
     }
@@ -57,8 +72,9 @@ class UserController {
     async updateUser(req, res) {
         try {
             const { id } = req.params;
-            const { username, email, password, firstName, lastName, phone, roleId, isActive } = req.body;
-            const { User, Role } = require('../../models');
+            const { username, email, password, firstName, lastName, phone, roleId, isActive, memberships: requestedMemberships } = req.body;
+            const { User, Role, OrganizationMember, Organization, sequelize } = require('../../models');
+            
             const user = await User.unscoped().findByPk(id);
             if (!user) return res.status(404).json({ success: false, message: 'User not found' });
             
@@ -72,48 +88,61 @@ class UserController {
                     }
                 }
             }
-            
-            // Prevent Super Admins from accidentally demoting themselves out of existence
-            if (roleId && roleId !== user.roleId) {
-                // Check if they are Demoting from Super Admin
-                if (user.roleId) {
-                    const currentRole = await Role.findByPk(user.roleId);
-                    if (currentRole && currentRole.name === 'Super Admin') {
-                        // Are they trying to change their OWN role?
-                        if (user.id === req.user.id) {
-                            return res.status(403).json({ success: false, message: 'Self-Demotion Blocked: You cannot remove your own Super Admin access to prevent accidental lockouts.' });
-                        }
+
+            await sequelize.transaction(async (t) => {
+                const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null, ...(isActive !== undefined && { isActive }) };
+                if (password) {
+                    const bcrypt = require('bcrypt');
+                    updatePayload.password = await bcrypt.hash(password, 10);
+                }
+                
+                await user.update(updatePayload, { transaction: t });
+
+                // Sync Memberships if provided
+                if (requestedMemberships && Array.isArray(requestedMemberships)) {
+                    // 1. Clear existing memberships to ensure fresh sync
+                    await OrganizationMember.destroy({
+                        where: { user_id: user.id },
+                        transaction: t
+                    });
+
+                    // 2. Create new memberships with specific roles
+                    const newMemberships = requestedMemberships.map(m => ({
+                        user_id: user.id,
+                        organization_id: m.organizationId,
+                        role_id: m.roleId === "" ? null : m.roleId,
+                        isActive: true
+                    }));
+                    
+                    if (newMemberships.length > 0) {
+                        await OrganizationMember.bulkCreate(newMemberships, { transaction: t });
                     }
                 }
+            });
 
-                // Check if they are Assigning Super Admin
-                const targetRole = await Role.findByPk(roleId);
-                if (targetRole && targetRole.name === 'Super Admin') {
-                    const requestingUser = await User.findByPk(req.user.id, { include: [{ model: Role, as: 'role' }] });
-                    if (!requestingUser.role || requestingUser.role.name !== 'Super Admin') {
-                        return res.status(403).json({ success: false, message: 'Privilege Escalation Blocked: Only existing Super Admins can assign the Super Admin role.' });
-                    }
-                }
-            }
-
-            const updatePayload = { username, email, firstName, lastName, phone, roleId: roleId || null, ...(isActive !== undefined && { isActive }) };
-            if (password) {
-                const bcrypt = require('bcrypt');
-                updatePayload.password = await bcrypt.hash(password, 10);
-            }
-            
-            await user.update(updatePayload);
-            const updatedUser = await User.findByPk(user.id, { include: [{ model: Role, as: 'role' }] });
+            const updatedUser = await User.findByPk(user.id, { 
+                include: [
+                    { model: Role, as: 'role' },
+                    { model: OrganizationMember, as: 'memberships', include: [{ model: Organization, as: 'organization' }, { model: Role, as: 'role' }] }
+                ] 
+            });
             return res.status(200).json({ success: true, message: 'User updated successfully', data: updatedUser });
         } catch (error) {
+            console.error("update user error:", error);
             return res.status(500).json({ success: false, message: error.message });
         }
     }
 
     async createUser(req, res) {
+        // Distributed License Check
+        const { isActivated } = require("../../utils/license");
+        if (!(await isActivated())) {
+            return res.status(402).json({ success: false, message: "Action blocked: System core is locked." });
+        }
+
         try {
-            const { username, email, password, firstName, lastName, phone, roleId } = req.body;
-            const { User, Role } = require('../../models');
+            const { username, email, password, firstName, lastName, phone, roleId, memberships: requestedMemberships } = req.body;
+            const { User, Role, OrganizationMember, Organization, sequelize } = require('../../models');
             
             // Protect Super Admin assignment
             if (roleId) {
@@ -129,12 +158,34 @@ class UserController {
             const bcrypt = require('bcrypt');
             const hashedPassword = await bcrypt.hash(password, 10);
             
-            const user = await User.create({
-                username, email, password: hashedPassword, firstName, lastName, phone, roleId: roleId || null
+            const result = await sequelize.transaction(async (t) => {
+                const user = await User.create({
+                    username, email, password: hashedPassword, firstName, lastName, phone, roleId: roleId || null
+                }, { transaction: t });
+
+                // Assign Memberships if provided
+                if (requestedMemberships && Array.isArray(requestedMemberships) && requestedMemberships.length > 0) {
+                    const memberships = requestedMemberships.map(m => ({
+                        user_id: user.id,
+                        organization_id: m.organizationId,
+                        role_id: m.roleId === "" ? null : m.roleId,
+                        isActive: true
+                    }));
+                    await OrganizationMember.bulkCreate(memberships, { transaction: t });
+                }
+
+                return user;
             });
-            const newUser = await User.findByPk(user.id, { include: [{ model: Role, as: 'role' }] });
+
+            const newUser = await User.findByPk(result.id, { 
+                include: [
+                    { model: Role, as: 'role' },
+                    { model: OrganizationMember, as: 'memberships', include: [{ model: Organization, as: 'organization' }, { model: Role, as: 'role' }] }
+                ] 
+            });
             return res.status(201).json({ success: true, data: newUser });
         } catch (error) {
+            console.error("create user error:", error);
             return res.status(500).json({ success: false, message: error.message });
         }
     }

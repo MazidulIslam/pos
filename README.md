@@ -1,6 +1,6 @@
-# Modern POS System
+# ProntoStack - Premium RBAC SaaS Template
 
-A high-performance, containerized Point of Sale (POS) application featuring a robust Role-Based Access Control (RBAC) system, dynamic menu management, and a modern React-based frontend.
+A high-performance, containerized Point of Sale (POS) application featuring a robust Role-Based Access Control (RBAC) system, multi-tenant isolation, and a secure software activation engine.
 
 ## 🚀 Quick Start (Docker)
 
@@ -25,68 +25,42 @@ The fastest and most reliable way to run the entire system is using Docker.
 
 ---
 
-## 🛠 Manual Installation (Non-Docker)
+## 🛡️ Software Activation
 
-If you prefer to run the components directly on your host machine.
+ProntoStack features a **Hardened Licensing Engine**. Upon first login, you will see a "System Activation Required" banner. Core features are locked until a valid key is provided.
 
-### Prerequisites
-- [Node.js](https://nodejs.org/en) (v18+)
-- [PostgreSQL](https://www.postgresql.org/) (v14+) running locally.
+### Generating a Key
+We provide a standalone utility to generate unique keys. 
 
-### 1. Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure Environment (`.env`):
-   Create a `.env` file based on `.env.example`:
-   ```env
-   PORT=5000
-   NODE_ENV=development
-   DB_HOST=localhost
-   DB_USER=postgres
-   DB_PASSWORD=password
-   DB_NAME=pos_db
-   JWT_SECRET=your_secure_secret_key
-   ```
-4. **Seed the Database**:
-   ```bash
-   npm run setup
-   ```
-5. Start the server:
-   ```bash
-   npm run dev
-   ```
+> [!IMPORTANT]
+> **Security Warning**: `keygen.js` is a **Private Developer Tool**. It contains the secret salt used to sign keys. **NEVER ship this file to your buyers.** Keep it on your local machine to generate keys for them manually.
 
-### 2. Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd ../frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Configure Environment (`.env`):
-   Create a `.env` file:
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:5050/api
-   ```
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-5. Access the app at [http://localhost:3000](http://localhost:3000).
+Run this from the project root:
+```bash
+# Generate a unique key for a buyer
+node keygen.js "Buyer_Name"
+```
+
+### Activating
+1. Log in with the default admin credentials.
+2. Navigate to **Settings > System License**.
+3. Enter your generated key to unlock the full platform.
+
+---
+
+## 👥 Multi-Tenant Onboarding Flow
+
+ProntoStack has transitioned to a secure **Admin-Led Workspace model**:
+
+1. **Self-Registration**: New users can register their accounts freely. This creates a "System Identity" with no initial access.
+2. **Admin Assignment**: An existing **Platform Admin** (Super Admin) must log in, view the new users, and manually assign them to one or more **Organizations** (Workspaces) with specific roles.
+3. **Workspace Isolation**: Users only see data and menus for the organizations they have been explicitly invited to.
 
 ---
 
 ## 🔑 Default Credentials
 
-After running `npm run setup` (or once Docker starts for the first time), the following initial account is created:
+After running the initial setup, the following master account is created:
 
 - **Email**: `admin@example.com`
 - **Password**: `admin123`
@@ -96,39 +70,48 @@ After running `npm run setup` (or once Docker starts for the first time), the fo
 
 ---
 
-## 🌟 Key Features
+## 🛠 Manual Installation (Non-Docker)
 
-- **Advanced RBAC System**: Granular permission management where permissions are tied to menus and actions.
-- **Recursive Hierarchical Sidebar**: Support for multi-level navigation (Parent > Child > Grandchild). Folders automatically inject "Overview" links for parent pages.
-- **Intelligent Breadcrumbs**: Automated, clickable navigation trails that update dynamically based on your location in the system.
-- **Hybrid Search Architecture**: A high-performance "Local-First" search matching strategy with automatic server-side fallback for large datasets.
-- **Optimized Server-side Pagination**: Standardized pagination (default 5 records) optimized for data-rich modules like Users, Roles, and Menus.
-- **Dynamic Menus**: Sidebars and navigation are driven entirely by database configurations, allowing for real-time UI updates.
-- **Direct Permission Overrides**: Assign specific permissions directly to a user, bypassing role standards for fine-grained control.
-- **Soft-Delete Management**: System-wide support for `isActive` flags. Inactive records are hidden but discoverable/restorable by Super Admins.
-- **Super Admin Protection**: Guardrails against deleting core roles or locking out administrative accounts.
-- **Database Backups**: Integrated tools to generate system exports directly from the settings panel.
+If you prefer to run the components directly on your host machine.
+
+### Prerequisites
+- [Node.js](https://nodejs.org/en) (v18+)
+- [PostgreSQL](https://www.postgresql.org/) (v14+) running locally.
+
+### 1. Backend Setup
+1. Navigate to the backend directory: `cd backend`
+2. Install dependencies: `npm install`
+3. Configure Environment (`.env`):
+   ```env
+   JWT_SECRET=your_secure_secret_key
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   ```
+4. **Seed the Database**:
+   ```bash
+   npm run setup
+   ```
+5. Start the server: `npm run dev`
 
 ---
 
-## 🛠 System Guidelines
+## 🌟 Key Features
 
-### Managing User Status
-- **Deactivating Users**: Setting a user to `Inactive` in their profile modal will immediately prevent them from logging in. This is a reversible soft-delete.
-- **Restoring Access**: Simply navigate to the Users management page and toggle the `Active` switch in the user's edit modal.
-
-### Super Admin Role
-- The **Super Admin** role is locked. It possesses all system permissions by default.
-- Only an existing Super Admin can assign the Super Admin role to another user. Standard admins cannot escalate their own privileges or those of others to this level.
+- **Layered RBAC Security**: Merged permission engine that combines **Platform Roles** (Saas-wide) and **Workspace Roles** (Tenant-specific).
+- **Defense in Depth**: Licensing protection is "entangled" with core business logic. Removing the UI guard alone will not unlock the system.
+- **Recursive Hierarchical Sidebar**: Support for multi-level navigation driven entirely by the database.
+- **Hybrid Search Architecture**: High-performance local search with automatic server-side fallback.
+- **Direct Permission Overrides**: Bypass role standards for fine-grained user control.
+- **Soft-Delete Management**: System-wide support for `isActive` flags to hide but preserve data.
 
 ---
 
 ## 🏗 Tech Stack
 
-- **Frontend**: Next.js 15, Material UI (MUI), Lucide Icons, Axios.
+- **Frontend**: Next.js 15, Material UI (MUI), Lucide Icons.
 - **Backend**: Express.js, Sequelize ORM, JWT, Bcrypt.
 - **Database**: PostgreSQL 15.
-- **Infrastructure**: Docker & Docker Compose.
+- **Protection**: HMAC-SHA256 Cryptographic Licensing.
 
 ---
 
@@ -136,11 +119,7 @@ After running `npm run setup` (or once Docker starts for the first time), the fo
 
 ```text
 ├── frontend/           # Next.js Application
-│   ├── src/app/        # Dashboard & Pages
-│   └── src/components/ # Reusable UI Components
 ├── backend/            # Express Server
-│   ├── src/models/     # Sequelize Database Models
-│   ├── src/controllers/# Business Logic
-│   └── src/scripts/    # Seeding & Core Setup
-└── docker-compose.yml  # Orchestration Config
+├── docker-compose.yml  # Orchestration Config
+└── keygen.js           # License Generation Tool
 ```

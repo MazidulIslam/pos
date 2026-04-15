@@ -69,6 +69,10 @@ module.exports = (sequelize, DataTypes) => {
     Permission.associate = (models) => {
         Permission.belongsTo(models.Menu, { foreignKey: "menu_id", as: "menu" });
         
+        if (models.Organization) {
+            Permission.belongsTo(models.Organization, { foreignKey: "organization_id", as: "organization" });
+        }
+
         if (models.Role) {
             Permission.belongsToMany(models.Role, {
                 through: models.RolePermission,

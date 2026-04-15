@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
-import { PageHeader } from "../../../../components/common/PageHeader";
+import PageHeader from "../../../../components/common/PageHeader";
 
 
 
@@ -125,6 +125,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
 
   const [roles, setRoles] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [menus, setMenus] = useState([]);
   
   const [openPermModal, setOpenPermModal] = useState(false);
@@ -133,7 +134,17 @@ export default function UsersPage() {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   
-  const [formData, setFormData] = useState({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
+  const [formData, setFormData] = useState({ 
+    username: "", 
+    email: "", 
+    password: "", 
+    firstName: "", 
+    lastName: "", 
+    phone: "", 
+    roleId: "", 
+    isActive: true,
+    memberships: [] // [{ organizationId, roleId }] 
+  });
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [selectedPerms, setSelectedPerms] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
@@ -151,6 +162,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchRoles();
+    fetchOrganizations();
     fetchMenus();
   }, []);
 
@@ -227,6 +239,18 @@ export default function UsersPage() {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const data = await api.get("/admin/organizations");
+      if (data.success) {
+        setOrganizations(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error fetching organizations", "error");
+    }
+  };
+
   const fetchMenus = async () => {
     try {
       const data = await api.get("/menus");
@@ -261,11 +285,15 @@ export default function UsersPage() {
         lastName: user.lastName || "",
         phone: user.phone || "",
         roleId: user.roleId || "",
-        isActive: user.isActive !== false
+        isActive: user.isActive !== false,
+        memberships: user.memberships?.map(m => ({
+          organizationId: m.organization?.id,
+          roleId: m.role?.id || ""
+        })).filter(m => m.organizationId) || []
       });
       setSelectedUser(user);
     } else {
-      setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
+      setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true, memberships: [] });
       setSelectedUser(null);
     }
     setOpenUserModal(true);
@@ -370,7 +398,7 @@ export default function UsersPage() {
       if (data.success) {
         showToast(`User successfully ${selectedUser ? "updated" : "created"}!`);
         setOpenUserModal(false);
-        setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true });
+        setFormData({ username: "", email: "", password: "", firstName: "", lastName: "", phone: "", roleId: "", isActive: true, memberships: [] });
         fetchUsers();
       } else {
         showToast(data.message || "Failed to save user", "error");
@@ -379,6 +407,29 @@ export default function UsersPage() {
         console.error(error); 
         showToast(error.message || "Network error saving user", "error");
     }
+  };
+
+  // Membership Management Helpers
+  const addMembership = () => {
+    setFormData(prev => ({
+      ...prev,
+      memberships: [...prev.memberships, { organizationId: "", roleId: "" }]
+    }));
+  };
+
+  const updateMembership = (index, field, value) => {
+    setFormData(prev => {
+      const next = [...prev.memberships];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, memberships: next };
+    });
+  };
+
+  const removeMembership = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      memberships: prev.memberships.filter((_, i) => i !== index)
+    }));
   };
 
   const filteredUsers = React.useMemo(() => {
@@ -416,8 +467,8 @@ export default function UsersPage() {
             <TableRow>
               <TableCell><strong>Name</strong></TableCell>
               <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Phone</strong></TableCell>
-              <TableCell><strong>Assigned Role</strong></TableCell>
+              <TableCell><strong>Organization Access</strong></TableCell>
+              <TableCell><strong>Platform Role</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Permissions</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
@@ -426,7 +477,7 @@ export default function UsersPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center"><CircularProgress size={24} /></TableCell>
+                <TableCell colSpan={7} align="center"><CircularProgress size={24} /></TableCell>
               </TableRow>
             ) : (
               filteredUsers.map((u) => (
@@ -434,7 +485,24 @@ export default function UsersPage() {
               <TableRow key={u.id} hover>
                 <TableCell>{u.firstName} {u.lastName}</TableCell>
                 <TableCell>{u.email}</TableCell>
-                <TableCell>{u.phone}</TableCell>
+                <TableCell>
+                  <Box display="flex" flexWrap="wrap" gap={1}>
+                    {u.memberships?.length > 0 ? (
+                      u.memberships.map(m => (
+                        <Chip 
+                          key={m.organization?.id} 
+                          label={`${m.organization?.name}: ${m.role?.name || 'No Role'}`} 
+                          size="small" 
+                          variant="outlined" 
+                          color={m.role?.name === 'Super Admin' ? 'error' : 'default'}
+                          sx={{ borderRadius: 1 }} 
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">None</Typography>
+                    )}
+                  </Box>
+                </TableCell>
                 <TableCell>
                   {u.role ? <Chip label={u.role.name} color={u.role.name === 'Super Admin' ? 'error' : 'primary'} size="small" /> : <Typography variant="body2" color="textSecondary">None</Typography>}
                 </TableCell>
@@ -456,7 +524,7 @@ export default function UsersPage() {
             )))}
             {!loading && users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center">No users found.</TableCell>
+                <TableCell colSpan={7} align="center">No users found.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -522,29 +590,100 @@ export default function UsersPage() {
         </DialogActions>
       </Dialog>
       {/* User Creation Form */}
-      <Dialog open={openUserModal} onClose={() => setOpenUserModal(false)} fullWidth maxWidth="sm">
+      <Dialog open={openUserModal} onClose={() => setOpenUserModal(false)} fullWidth maxWidth="md">
         <DialogTitle>{selectedUser ? "Edit User" : "Add New User"}</DialogTitle>
         <DialogContent>
-          <TextField margin="dense" label="First Name" fullWidth value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
-          <TextField margin="dense" label="Last Name" fullWidth value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
-          <TextField margin="dense" label="Username" fullWidth value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
-          <TextField margin="dense" label="Email" type="email" fullWidth value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-          <TextField margin="dense" label="Password" type="password" fullWidth value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-          <TextField margin="dense" label="Phone" fullWidth value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
-            <InputLabel id="new-user-role-label">User Role (Optional)</InputLabel>
+          <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2} mt={1}>
+            <TextField margin="dense" label="First Name" fullWidth value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+            <TextField margin="dense" label="Last Name" fullWidth value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+            <TextField margin="dense" label="Username" fullWidth value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+            <TextField margin="dense" label="Email" type="email" fullWidth value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            <TextField margin="dense" label="Password" type="password" fullWidth value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+            <TextField margin="dense" label="Phone" fullWidth value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
+          </Box>
+          
+          <FormControl fullWidth margin="dense" sx={{ mt: 3 }}>
+            <InputLabel id="new-user-role-label">Platform Role (Enterprise-wide)</InputLabel>
             <Select
               labelId="new-user-role-label"
               value={formData.roleId}
-              label="User Role (Optional)"
+              label="Platform Role (Enterprise-wide)"
               onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
             >
               <MenuItem value=""><em>None</em></MenuItem>
-              {roles.filter(r => r.isActive !== false || r.id === formData.roleId).map(r => (
+              {roles.filter(r => !r.organization_id && (r.isActive !== false || r.id === formData.roleId)).map(r => (
                 <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
+
+          <Box mt={4} mb={2}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" fontWeight="bold">Workspace Access</Typography>
+              <Button startIcon={<Add />} variant="outlined" size="small" onClick={addMembership}>
+                Add Workspace
+              </Button>
+            </Box>
+
+            {formData.memberships.length === 0 && (
+              <Box p={3} border="1px dashed" borderColor="divider" borderRadius={2} textAlign="center">
+                <Typography variant="body2" color="text.secondary">
+                  No organization memberships defined. This user will only have access to platform-level features.
+                </Typography>
+              </Box>
+            )}
+
+            {formData.memberships.map((m, index) => (
+              <Box 
+                key={index} 
+                display="flex" 
+                gap={2} 
+                mb={2} 
+                p={2} 
+                bgcolor="action.hover" 
+                borderRadius={2}
+                alignItems="center"
+              >
+                <FormControl fullWidth size="small">
+                  <InputLabel>Organization</InputLabel>
+                  <Select
+                    value={m.organizationId}
+                    label="Organization"
+                    onChange={(e) => updateMembership(index, 'organizationId', e.target.value)}
+                  >
+                    {organizations.map(org => (
+                      <MenuItem 
+                        key={org.id} 
+                        value={org.id} 
+                        disabled={formData.memberships.some((other, i) => i !== index && other.organizationId === org.id)}
+                      >
+                        {org.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth size="small">
+                  <InputLabel>Workspace Role</InputLabel>
+                  <Select
+                    value={m.roleId}
+                    label="Workspace Role"
+                    onChange={(e) => updateMembership(index, 'roleId', e.target.value)}
+                  >
+                    <MenuItem value=""><em>Default (No Role)</em></MenuItem>
+                    {roles.map(r => (
+                      <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <IconButton color="error" onClick={() => removeMembership(index)}>
+                  <Delete />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+
           {selectedUser && (
             <FormControlLabel
               control={

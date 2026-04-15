@@ -18,6 +18,8 @@ app.use(express.json());
 // Connect to Database
 connectDB();
 
+const { licenseGuard } = require('./utils/license');
+
 // Routes
 const authRoutes = require('./routes/auth/authRoutes');
 const userRoutes = require('./routes/users/userRoutes');
@@ -25,7 +27,11 @@ const menuRoutes = require('./routes/menus/menuRoutes');
 const roleRoutes = require('./routes/roles/roleRoutes');
 const backupRoutes = require('./routes/backup/backupRoutes');
 const searchRoutes = require('./routes/search/searchRoutes');
+const adminRoutes = require('./routes/admin/adminRoutes');
+const systemRoutes = require('./routes/system/systemRoutes');
 
+// Apply License Guard globally to all API routes
+app.use('/api', licenseGuard);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -33,10 +39,12 @@ app.use('/api/menus', menuRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/system', systemRoutes);
 
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Modern POS API is running' });
+    res.json({ status: 'ok', message: 'ProntoStack RBAC API is running' });
 });
 
 app.listen(PORT, () => {

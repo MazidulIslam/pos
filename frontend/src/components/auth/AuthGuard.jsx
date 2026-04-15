@@ -40,7 +40,9 @@ export function AuthGuard({ children }) {
             const storedMenus = localStorage.getItem("menus");
             const storedPerms = localStorage.getItem("permissions");
             
-            if (storedMenus && storedPerms) {
+            // Safety check: if either is missing or set to the literal string "undefined", 
+            // we should not try to parse and instead treat as unauthenticated
+            if (storedMenus && storedPerms && storedMenus !== "undefined" && storedPerms !== "undefined") {
                 const menus = JSON.parse(storedMenus);
                 const perms = JSON.parse(storedPerms);
 

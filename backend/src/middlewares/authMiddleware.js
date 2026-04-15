@@ -1,8 +1,8 @@
 const { verifyToken } = require("../utils/jwt");
-const { User, Role, Permission, BlacklistedToken } = require("../models");
+const { User, Role, Permission, BlacklistedToken, OrganizationMember, Organization } = require("../models");
 
 /**
- * Middleware to protect routes by verifying JWT
+ * Middleware to protect routes by verifying JWT and identifying the active tenant
  */
 const protect = async (req, res, next) => {
     let token;
@@ -15,54 +15,82 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(" ")[1];
             const decoded = verifyToken(token);
 
-            // Check blacklist
-            const isBlacklisted = await BlacklistedToken.findOne({
-                where: { token },
-            });
-
+            // 1. Check blacklist
+            const isBlacklisted = await BlacklistedToken.findOne({ where: { token } });
             if (isBlacklisted) {
-                return res.status(401).json({
-                    success: false,
-                    message: "Not authorized alt token",
-                });
+                return res.status(401).json({ success: false, message: "Session invalid or logged out" });
             }
 
-            // Find user with Role and Permissions
-            const user = await User.findByPk(decoded.id, {
+            // 2. Extract Active Organization
+            const { id: userId, activeOrgId } = decoded;
+
+            // 3. Verify Membership and Org Status
+            const membership = await OrganizationMember.findOne({
+                where: { user_id: userId, organization_id: activeOrgId, isActive: true },
                 include: [
+                    {
+                        model: Organization,
+                        as: 'organization',
+                        where: { isActive: true }
+                    },
                     {
                         model: Role,
                         as: 'role',
                         include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }]
-                    },
-                    {
-                        model: Permission,
-                        as: 'directPermissions',
-                        through: { attributes: [] }
                     }
                 ]
             });
 
-            if (!user) {
-                return res.status(401).json({
+            if (!membership) {
+                 return res.status(401).json({
                     success: false,
-                    message: "Not authorized, user no longer exists",
+                    message: "User does not have access to this organization or organization is suspended",
                 });
             }
 
+            // 4. Fetch User with Platform Role and Direct Permissions
+            const user = await User.findByPk(userId, {
+                include: [
+                    { 
+                        model: Role, 
+                        as: 'role', 
+                        include: [{ model: Permission, as: 'permissions', through: { attributes: [] } }] 
+                    },
+                    { 
+                        model: Permission, 
+                        as: 'directPermissions', 
+                        through: { attributes: [] } 
+                    }
+                ]
+            });
 
-
-            // Compute actual permissions for this request
-            let permissions = [];
-            if (user.role && user.role.name === 'Super Admin') {
-                permissions = ['*'];
-            } else {
-                const rolePerms = user.role && user.role.permissions ? user.role.permissions.map(p => p.action) : [];
-                const directPerms = user.directPermissions ? user.directPermissions.map(p => p.action) : [];
-                permissions = [...new Set([...rolePerms, ...directPerms])];
+            if (!user || !user.isActive) {
+                return res.status(401).json({ success: false, message: "User account deactivated" });
             }
 
+            // 5. Compute Layered Permissions
+            let permissions = [];
+            
+            // Check for Super Admin bypass at Platform Level OR Workspace Level
+            const isPlatformSuperAdmin = user.role && user.role.name === 'Super Admin';
+            const isWorkspaceSuperAdmin = membership.role && membership.role.name === 'Super Admin';
+
+            if (isPlatformSuperAdmin || isWorkspaceSuperAdmin) {
+                permissions = ['*'];
+            } else {
+                // Merge permissions from all sources
+                const platformRolePerms = user.role && user.role.permissions ? user.role.permissions.map(p => p.action) : [];
+                const workspaceRolePerms = membership.role && membership.role.permissions ? membership.role.permissions.map(p => p.action) : [];
+                const directPerms = user.directPermissions ? user.directPermissions.map(p => p.action) : [];
+
+                permissions = [...new Set([...platformRolePerms, ...workspaceRolePerms, ...directPerms])];
+            }
+
+            // 6. Set request context
             req.user = user;
+            req.activeOrgId = activeOrgId;
+            req.activeOrg = membership.organization;
+            req.membership = membership;
             req.permissions = permissions;
             req.token = token;
             req.tokenExp = decoded.exp;

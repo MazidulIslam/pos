@@ -86,10 +86,22 @@ module.exports = (sequelize, DataTypes) => {
     );
 
     User.associate = (models) => {
-        // A user belongs to a role
+        // A user belongs to a role (Default/Global role if any)
         if (models.Role) {
             User.belongsTo(models.Role, { foreignKey: "roleId", as: "role" });
         }
+        
+        // Multi-tenancy: A user can belong to multiple organizations
+        if (models.Organization && models.OrganizationMember) {
+            User.belongsToMany(models.Organization, {
+                through: models.OrganizationMember,
+                foreignKey: "user_id",
+                otherKey: "organization_id",
+                as: "organizations"
+            });
+            User.hasMany(models.OrganizationMember, { foreignKey: "user_id", as: "memberships" });
+        }
+
         if (models.Permission) {
             User.belongsToMany(models.Permission, {
                 through: "user_permissions",

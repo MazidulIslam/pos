@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../utils/api";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
-import { PageHeader } from "../../../../components/common/PageHeader";
+import PageHeader from "../../../../components/common/PageHeader";
 
 
 

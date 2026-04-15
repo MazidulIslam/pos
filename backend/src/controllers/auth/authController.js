@@ -21,7 +21,7 @@ const register = async (req, res) => {
             email,
             password,
             firstName,
-            lastName,
+            lastName
         });
 
         return res.status(201).json({
@@ -39,7 +39,7 @@ const register = async (req, res) => {
 };
 
 /**
- * Authenticate user & get token
+ * Authenticate user & get allowed organizations
  * @route POST /api/auth/login
  */
 const login = async (req, res) => {
@@ -53,23 +53,52 @@ const login = async (req, res) => {
             });
         }
 
-        const { user, token, permissions, menus } = await authService.loginUser(email, password);
+        const { user, organizations } = await authService.loginUser(email, password);
 
         return res.status(200).json({
             success: true,
             data: {
                 user,
-                token,
-                permissions,
-                menus
+                organizations
             },
-            message: "Login successful",
+            message: organizations.length > 0 ? "Please select an organization" : "Login successful",
         });
     } catch (error) {
         console.error("Login error:", error);
         return res.status(error.status || 500).json({
             success: false,
             message: error.message || "An unexpected error occurred during login",
+        });
+    }
+};
+
+/**
+ * Select an organization and get the access token
+ * @route POST /api/auth/select-org
+ */
+const selectOrg = async (req, res) => {
+    try {
+        const { userId, organizationId } = req.body;
+
+        if (!userId || !organizationId) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID and Organization ID are required",
+            });
+        }
+
+        const result = await authService.selectOrganization(userId, organizationId);
+
+        return res.status(200).json({
+            success: true,
+            message: `Switched to ${result.activeOrg.name}`,
+            data: result,
+        });
+    } catch (error) {
+        console.error("Select Org error:", error);
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Could not select organization",
         });
     }
 };
@@ -103,5 +132,6 @@ const logout = async (req, res) => {
 module.exports = {
     register,
     login,
+    selectOrg,
     logout,
 };

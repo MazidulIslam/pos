@@ -42,6 +42,16 @@ api.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response;
 
+      if (status === 402) {
+        // Handle License Error (Payment Required)
+        const isAuthPage = window.location.pathname.startsWith('/login') || window.location.pathname.startsWith('/register');
+        const isLicensePage = window.location.pathname.includes('/settings/license');
+        
+        if (!isAuthPage && !isLicensePage) {
+            window.location.href = '/settings/license?error=activation_required';
+        }
+      }
+
       if (status === 401) {
         // Skip automatic redirect for login and register routes
         const isAuthRoute = error.config.url?.includes("/auth/login") || error.config.url?.includes("/auth/register");

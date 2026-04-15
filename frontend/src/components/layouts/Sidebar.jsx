@@ -321,7 +321,7 @@ export const Sidebar = () => {
                   lineHeight: 1,
                 }}
               >
-                M
+                P
               </Typography>
             </Box>
 
@@ -338,9 +338,9 @@ export const Sidebar = () => {
                   "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              Modern
+              Pronto
               <Box component="span" sx={{ color: "primary.main" }}>
-                POS
+                Stack
               </Box>
             </Typography>
           </Box>

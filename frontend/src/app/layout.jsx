@@ -8,7 +8,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "Modern POS | Next-Gen ERP",
+  title: "ProntoStack | Next-Gen RBAC SaaS Template",
   description: "A premium point of sale and inventory management system",
 };
 

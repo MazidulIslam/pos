@@ -17,9 +17,26 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Button,
+  Chip,
 } from "@mui/material";
 import { useSidebar } from "./SidebarContext";
-import { Search, Bell, Menu as MenuIcon, User, Settings, LogOut, Users, ShieldCheck, Key, MousePointer2 } from "lucide-react";
+import { 
+  Search, 
+  Bell, 
+  Menu as MenuIcon, 
+  User, 
+  Settings, 
+  LogOut, 
+  Users, 
+  ShieldCheck, 
+  Key, 
+  MousePointer2,
+  Building2,
+  ChevronDown,
+  Check,
+  Globe
+} from "lucide-react";
 import { styled, alpha } from "@mui/material/styles";
 import { ClickAwayListener, Paper, List, ListItemButton, Avatar as SmallAvatar } from "@mui/material";
 import config from "../../config";
@@ -78,6 +95,7 @@ export const Header = () => {
   const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   const [anchorEl, setAnchorEl] = useState(null);
+  const [orgAnchorEl, setOrgAnchorEl] = useState(null);
   const router = useRouter();
   const { hasPermission } = usePermissions();
   
@@ -85,18 +103,28 @@ export const Header = () => {
   const canViewSettings = hasPermission("settings.view") || hasPermission("settings.update");
   
   const [user, setUser] = useState(null);
+  const [activeOrg, setActiveOrg] = useState(null);
+  const [userOrgs, setUserOrgs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const { fontSize } = useThemeSettings();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
+    const storedOrg = localStorage.getItem("active_organization");
+    const storedOrgs = localStorage.getItem("user_organizations");
+
     if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {}
+        try { setUser(JSON.parse(storedUser)); } catch (e) {}
+    }
+    if (storedOrg) {
+        try { setActiveOrg(JSON.parse(storedOrg)); } catch (e) {}
+    }
+    if (storedOrgs) {
+        try { setUserOrgs(JSON.parse(storedOrgs)); } catch (e) {}
     }
   }, []);
 
@@ -139,12 +167,41 @@ export const Header = () => {
     return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
   };
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+  
+  const handleOrgMenuOpen = (event) => setOrgAnchorEl(event.currentTarget);
+  const handleOrgMenuClose = () => setOrgAnchorEl(null);
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleSwitchOrg = async (orgId) => {
+    if (orgId === activeOrg?.id || isSwitching) return;
+    
+    setIsSwitching(true);
+    try {
+        const resp = await api.post("/auth/select-org", {
+            userId: user.id,
+            organizationId: orgId
+        });
+
+        if (resp.success) {
+            const { token, user: updatedUser, menus, permissions, activeOrg: newOrg } = resp.data;
+
+            // Update session data
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            localStorage.setItem("active_organization", JSON.stringify(newOrg));
+            localStorage.setItem("menus", JSON.stringify(menus));
+            localStorage.setItem("permissions", JSON.stringify(permissions));
+
+            handleOrgMenuClose();
+            // Full refresh to reload permissions hooks and menu state
+            window.location.reload();
+        }
+    } catch (err) {
+        console.error("Failed to switch organization:", err);
+    } finally {
+        setIsSwitching(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -158,6 +215,10 @@ export const Header = () => {
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("active_organization");
+      localStorage.removeItem("user_organizations");
+      localStorage.removeItem("menus");
+      localStorage.removeItem("permissions");
       router.push("/login");
     }
   };
@@ -174,54 +235,109 @@ export const Header = () => {
         borderBottom: "1px solid var(--border)",
         height: "var(--header-height)",
         justifyContent: "center",
-        zIndex: 1100, // Ensure header sits slightly below sidebar flyout
-        transition:
-          "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        zIndex: 1100,
+        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ gap: 2 }}>
         <IconButton
           color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={() => setIsMobileOpen(true)}
-          sx={{ mr: 2, display: { lg: "none" } }}
+          sx={{ display: { lg: "none" } }}
         >
           <MenuIcon />
         </IconButton>
 
-        {/* Mobile Branding Link */}
-        <Box sx={{ display: { xs: "flex", lg: "none" }, alignItems: "center", flexGrow: 1 }}>
-          <Link 
-            href="/" 
-            style={{ 
-              textDecoration: "none", 
-              color: "inherit", 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "8px" 
-            }}
-          >
-            <Box
-              sx={{
-                height: 32,
-                width: 32,
-                borderRadius: 1,
-                bgcolor: "primary.main",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 6px -1px rgb(79 70 229 / 0.25)",
-              }}
+        {/* Workspace Switcher */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+                onClick={handleOrgMenuOpen}
+                startIcon={
+                    <Box sx={{ 
+                        p: 0.75, 
+                        bgcolor: 'primary.light', 
+                        borderRadius: 1.5, 
+                        display: 'flex',
+                        color: 'primary.main',
+                        opacity: 0.9
+                    }}>
+                        <Building2 size={18} />
+                    </Box>
+                }
+                endIcon={<ChevronDown size={14} style={{ opacity: 0.5 }} />}
+                sx={{
+                    textTransform: 'none',
+                    color: 'text.primary',
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    border: '1px solid transparent',
+                    '&:hover': {
+                        bgcolor: alpha('#4f46e5', 0.04),
+                        borderColor: 'divider'
+                    }
+                }}
             >
-              <Typography variant="h6" sx={{ color: "white", fontWeight: "bold", fontSize: 18 }}>
-                M
-              </Typography>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: "bold", letterSpacing: "-0.025em" }}>
-              Modern<Box component="span" sx={{ color: "primary.main" }}>POS</Box>
-            </Typography>
-          </Link>
+                <Box sx={{ textAlign: 'left', ml: 0.5 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.2 }}>
+                        {activeOrg?.name || "Select Workspace"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Globe size={10} /> {activeOrg?.subdomain}.prontostack.com
+                    </Typography>
+                </Box>
+            </Button>
+
+            <Menu
+                anchorEl={orgAnchorEl}
+                open={Boolean(orgAnchorEl)}
+                onClose={handleOrgMenuClose}
+                PaperProps={{
+                    sx: {
+                        mt: 1.5,
+                        width: 280,
+                        borderRadius: 3,
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                        border: '1px solid var(--border)',
+                        p: 1
+                    }
+                }}
+            >
+                <Typography variant="caption" sx={{ px: 2, py: 1, fontWeight: 700, color: 'text.secondary', display: 'block' }}>
+                    SWITCH WORKSPACE
+                </Typography>
+                {userOrgs.map((org) => (
+                    <MenuItem 
+                        key={org.id} 
+                        onClick={() => handleSwitchOrg(org.id)}
+                        disabled={isSwitching}
+                        sx={{
+                            borderRadius: 2,
+                            py: 1.5,
+                            my: 0.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            bgcolor: org.id === activeOrg?.id ? alpha('#4f46e5', 0.08) : 'transparent',
+                            '&:hover': {
+                                bgcolor: alpha('#4f46e5', 0.04)
+                            }
+                        }}
+                    >
+                        <Box>
+                            <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
+                                {org.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {org.subdomain}.prontostack.com
+                            </Typography>
+                        </Box>
+                        {org.id === activeOrg?.id && <Check size={16} color="#4f46e5" />}
+                    </MenuItem>
+                ))}
+            </Menu>
         </Box>
 
         <Box sx={{ flexGrow: 1, display: { xs: "none", md: "block" }, position: "relative" }}>
@@ -240,22 +356,19 @@ export const Header = () => {
                 />
               </SearchContainer>
               
-              {/* Search Results Dropdown */}
               {isSearchOpen && (
-                <Paper
-                  sx={{
-                    position: "absolute",
-                    top: "calc(100% + 8px)",
-                    left: 24,
-                    width: "calc(100% - 48px)",
-                    maxHeight: 400,
-                    overflowY: "auto",
-                    zIndex: 1400,
-                    borderRadius: 3,
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
+                <Paper sx={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  left: 24,
+                  width: "calc(100% - 48px)",
+                  maxHeight: 400,
+                  overflowY: "auto",
+                  zIndex: 1400,
+                  borderRadius: 3,
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                  border: "1px solid var(--border)",
+                }}>
                   <List sx={{ p: 1 }}>
                     {searchResults.length > 0 ? (
                       searchResults.map((result) => (
@@ -265,18 +378,8 @@ export const Header = () => {
                           sx={{ borderRadius: 2, mb: 0.5, py: 1 }}
                         >
                           <ListItemIcon sx={{ minWidth: 40 }}>
-                            <Box 
-                              sx={{ 
-                                bgcolor: "secondary.main", 
-                                color: "primary.main",
-                                p: 1, 
-                                borderRadius: 1.5,
-                                display: "flex" 
-                              }}
-                            >
-                              {result.type === 'User' ? <Users size={18} /> : 
-                               result.type === 'Role' ? <ShieldCheck size={18} /> : 
-                               <Key size={18} />}
+                            <Box sx={{ bgcolor: "secondary.main", color: "primary.main", p: 1, borderRadius: 1.5, display: "flex" }}>
+                              {result.type === 'User' ? <Users size={18} /> : result.type === 'Role' ? <ShieldCheck size={18} /> : <Key size={18} />}
                             </Box>
                           </ListItemIcon>
                           <ListItemText
@@ -309,25 +412,17 @@ export const Header = () => {
             </Badge>
           </IconButton>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              ml: 2,
-              gap: 1.5,
-              borderLeft: "1px solid var(--border)",
-              pl: 2,
-            }}
-          >
-            <Box
-              sx={{ display: { xs: "none", sm: "block" }, textAlign: "right" }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {userName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {userRole}
-              </Typography>
+          <Box sx={{
+            display: "flex",
+            alignItems: "center",
+            ml: 1,
+            gap: 1.5,
+            borderLeft: "1px solid var(--border)",
+            pl: 2,
+          }}>
+            <Box sx={{ display: { xs: "none", sm: "block" }, textAlign: "right" }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{userName}</Typography>
+              <Typography variant="caption" color="text.secondary">{userRole}</Typography>
             </Box>
             <Avatar
               onClick={handleMenuOpen}
@@ -366,23 +461,15 @@ export const Header = () => {
                     borderRadius: 1.5,
                     mx: 1,
                     my: 0.5,
-                    "&:hover": {
-                      bgcolor: "secondary.main",
-                    },
+                    "&:hover": { bgcolor: "secondary.main" },
                   },
-                  "& .MuiListItemIcon-root": {
-                    minWidth: 32,
-                  },
+                  "& .MuiListItemIcon-root": { minWidth: 32 },
                 },
               }}
             >
               <Box sx={{ px: 2, py: 1.5, display: { xs: "block", sm: "none" } }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {userName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {userRole}
-                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{userName}</Typography>
+                <Typography variant="caption" color="text.secondary">{userRole}</Typography>
               </Box>
               <Box sx={{ display: { xs: "block", sm: "none" } }}>
                 <Divider sx={{ my: 0.5 }} />
@@ -390,24 +477,14 @@ export const Header = () => {
 
               {canViewProfile && (
                 <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/profile'); }}>
-                  <ListItemIcon>
-                    <User size={18} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="My Profile"
-                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                  />
+                  <ListItemIcon><User size={18} /></ListItemIcon>
+                  <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
                 </MenuItem>
               )}
               {canViewSettings && (
                 <MenuItem onClick={() => { handleMenuClose(); router.push('/settings/account'); }}>
-                  <ListItemIcon>
-                    <Settings size={18} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Account Settings"
-                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                  />
+                  <ListItemIcon><Settings size={18} /></ListItemIcon>
+                  <ListItemText primary="Account Settings" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
                 </MenuItem>
               )}
 
@@ -417,19 +494,11 @@ export const Header = () => {
                 onClick={handleLogout}
                 sx={{
                   color: "error.main",
-                  "&:hover": {
-                    bgcolor: "error.light !important",
-                    color: "error.dark",
-                  },
+                  "&:hover": { bgcolor: "error.light !important", color: "error.dark" },
                 }}
               >
-                <ListItemIcon sx={{ color: "inherit !important" }}>
-                  <LogOut size={18} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Sign Out"
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}
-                />
+                <ListItemIcon sx={{ color: "inherit !important" }}><LogOut size={18} /></ListItemIcon>
+                <ListItemText primary="Sign Out" primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }} />
               </MenuItem>
             </Menu>
           </Box>
