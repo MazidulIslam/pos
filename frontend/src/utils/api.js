@@ -43,14 +43,19 @@ api.interceptors.response.use(
       const { status, data } = error.response;
 
       if (status === 401) {
-        // Unauthorized - Clear storage and redirect to login
-        console.warn("Session expired. Redirecting to login...");
-        localStorage.clear();
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
+        // Skip automatic redirect for login and register routes
+        const isAuthRoute = error.config.url?.includes("/auth/login") || error.config.url?.includes("/auth/register");
+        
+        if (!isAuthRoute) {
+          // Unauthorized - Clear storage and redirect to login
+          console.warn("Session expired. Redirecting to login...");
+          localStorage.clear();
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+          // Return a pending promise so the .catch() doesn't fire and show red toasts during redirect
+          return new Promise(() => {});
         }
-        // Return a pending promise so the .catch() doesn't fire and show red toasts during redirect
-        return new Promise(() => {});
       }
 
       // Return a standard error message

@@ -81,7 +81,8 @@ export default function LoginPage() {
       // Redirect to dashboard
       router.push("/");
     } catch (err) {
-      setErrorMsg(err.message);
+      const message = err.response?.data?.message || err.message || "An unexpected error occurred during login.";
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -386,35 +387,6 @@ export default function LoginPage() {
                 }}
               >
                 {isLoading ? "Signing in..." : "Sign in to dashboard"}
-              </Button>
-            </Stack>
-
-            <Divider sx={{ my: 3 }}>or</Divider>
-
-            <Stack spacing={1.5}>
-              <Button
-                variant="outlined"
-                fullWidth
-                sx={{
-                  py: 1.35,
-                  borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Continue with Google
-              </Button>
-              <Button
-                variant="outlined"
-                fullWidth
-                sx={{
-                  py: 1.35,
-                  borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Continue with Microsoft
               </Button>
             </Stack>
 

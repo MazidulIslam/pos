@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   AppBar,
   Toolbar,
@@ -188,6 +189,40 @@ export const Header = () => {
         >
           <MenuIcon />
         </IconButton>
+
+        {/* Mobile Branding Link */}
+        <Box sx={{ display: { xs: "flex", lg: "none" }, alignItems: "center", flexGrow: 1 }}>
+          <Link 
+            href="/" 
+            style={{ 
+              textDecoration: "none", 
+              color: "inherit", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px" 
+            }}
+          >
+            <Box
+              sx={{
+                height: 32,
+                width: 32,
+                borderRadius: 1,
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 6px -1px rgb(79 70 229 / 0.25)",
+              }}
+            >
+              <Typography variant="h6" sx={{ color: "white", fontWeight: "bold", fontSize: 18 }}>
+                M
+              </Typography>
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: "bold", letterSpacing: "-0.025em" }}>
+              Modern<Box component="span" sx={{ color: "primary.main" }}>POS</Box>
+            </Typography>
+          </Link>
+        </Box>
 
         <Box sx={{ flexGrow: 1, display: { xs: "none", md: "block" }, position: "relative" }}>
           <ClickAwayListener onClickAway={() => setIsSearchOpen(false)}>

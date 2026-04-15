@@ -287,53 +287,64 @@ export const Sidebar = () => {
           transition: "padding 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box
-            sx={{
-              height: 32,
-              width: 32,
-              minWidth: 32,
-              borderRadius: 1,
-              bgcolor: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 6px -1px rgb(79 70 229 / 0.25)",
-              flexShrink: 0,
-            }}
-          >
+        <Link 
+          href="/" 
+          style={{ 
+            textDecoration: 'none', 
+            color: 'inherit',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+          onClick={() => setIsMobileOpen(false)}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box
+              sx={{
+                height: 32,
+                width: 32,
+                minWidth: 32,
+                borderRadius: 1,
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 6px -1px rgb(79 70 229 / 0.25)",
+                flexShrink: 0,
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  color: "white",
+                  fontWeight: "bold",
+                  fontSize: 18,
+                  lineHeight: 1,
+                }}
+              >
+                M
+              </Typography>
+            </Box>
+
             <Typography
               variant="h6"
               sx={{
-                color: "white",
                 fontWeight: "bold",
-                fontSize: 18,
-                lineHeight: 1,
+                letterSpacing: "-0.025em",
+                whiteSpace: "nowrap",
+                opacity: isExpanded ? 1 : 0,
+                maxWidth: isExpanded ? 160 : 0,
+                overflow: "hidden",
+                transition:
+                  "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              M
+              Modern
+              <Box component="span" sx={{ color: "primary.main" }}>
+                POS
+              </Box>
             </Typography>
           </Box>
-
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: "bold",
-              letterSpacing: "-0.025em",
-              whiteSpace: "nowrap",
-              opacity: isExpanded ? 1 : 0,
-              maxWidth: isExpanded ? 160 : 0,
-              overflow: "hidden",
-              transition:
-                "opacity 0.2s ease, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            Modern
-            <Box component="span" sx={{ color: "primary.main" }}>
-              POS
-            </Box>
-          </Typography>
-        </Box>
+        </Link>
       </Box>
 
       <Box

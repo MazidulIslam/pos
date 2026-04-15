@@ -104,7 +104,8 @@ export default function RegisterPage() {
       // Registration success, redirect to login
       router.push("/login");
     } catch (err) {
-      setErrorMsg(err.message);
+      const message = err.response?.data?.message || err.message || "An unexpected error occurred during registration.";
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -341,47 +342,6 @@ export default function RegisterPage() {
                     POS experience.
                   </Typography>
                 </Box>
-
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      py: 1.4,
-                      borderRadius: 3,
-                      borderColor: "rgba(148,163,184,0.35)",
-                      textTransform: "none",
-                      fontWeight: 700,
-                      color: "text.primary",
-                      bgcolor: "white",
-                    }}
-                  >
-                    Continue with Google
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      py: 1.4,
-                      borderRadius: 3,
-                      borderColor: "rgba(148,163,184,0.35)",
-                      textTransform: "none",
-                      fontWeight: 700,
-                      color: "text.primary",
-                      bgcolor: "white",
-                    }}
-                  >
-                    Continue with GitHub
-                  </Button>
-                </Stack>
-
-                <Stack direction="row" alignItems="center" spacing={2}>
-                  <Divider sx={{ flex: 1 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    or sign up with email
-                  </Typography>
-                  <Divider sx={{ flex: 1 }} />
-                </Stack>
 
                 {errorMsg && (
                   <Box sx={{ p: 2, bgcolor: "#fee2e2", color: "#b91c1c", borderRadius: 2, border: "1px solid #f87171" }}>

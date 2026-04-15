@@ -43,12 +43,14 @@ If you prefer to run the components directly on your host machine.
    npm install
    ```
 3. Configure Environment (`.env`):
+   Create a `.env` file based on `.env.example`:
    ```env
    PORT=5000
-   DB_NAME=pos_db
-   DB_USER=your_postgres_user
-   DB_PASSWORD=your_postgres_password
+   NODE_ENV=development
    DB_HOST=localhost
+   DB_USER=postgres
+   DB_PASSWORD=password
+   DB_NAME=pos_db
    JWT_SECRET=your_secure_secret_key
    ```
 4. **Seed the Database**:
@@ -69,11 +71,16 @@ If you prefer to run the components directly on your host machine.
    ```bash
    npm install
    ```
-3. Start the development server:
+3. Configure Environment (`.env`):
+   Create a `.env` file:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5050/api
+   ```
+4. Start the development server:
    ```bash
    npm run dev
    ```
-4. Access the app at [http://localhost:3000](http://localhost:3000).
+5. Access the app at [http://localhost:3000](http://localhost:3000).
 
 ---
 
